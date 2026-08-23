@@ -14,3 +14,4 @@ class User(Base):
     username : Mapped[str] = mapped_column(VARCHAR(128), nullable=True, unique=True)
     full_name : Mapped[str] = mapped_column(VARCHAR(128), nullable=True)
     join_date : Mapped[datetime] = mapped_column(default=datetime.now)
+    is_blocked : Mapped[bool] = mapped_column(default=False)

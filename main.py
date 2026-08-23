@@ -6,20 +6,20 @@ from aiogram.types import (Message, CallbackQuery, FSInputFile,
                            ReplyKeyboardMarkup, KeyboardButton, 
                            InlineKeyboardMarkup, InlineKeyboardButton)
 from aiogram.enums import ParseMode
-from operations import create_table,get_user, insert_user
+from operations import create_table
+from middlewares import Requirements
 
 load_dotenv()
 dp = Dispatcher()
+#for loading and runing middlewares
+dp.message.outer_middleware(Requirements())
 
 # message handler. can recieve messages #that would be start only with /start
 @dp.message(filters.CommandStart())
 #aiogram is async so we should write everythings async
 async def start(message : Message):
 
-    user = await get_user(message.from_user.id)
-    if user is None:
-        await insert_user(message.from_user.id, message.from_user.full_name, message.from_user.username)
-
+   
 
     markup = ReplyKeyboardMarkup(
         keyboard=[
