@@ -13,6 +13,8 @@ from filters import isAdmin, Photo
 from aiostep import MemoryStateStorage
 from aiostep.utils import IsState
 
+from aiogram.enums import ButtonStyle
+
 states = MemoryStateStorage()
 # for loading secret variables from .env
 load_dotenv()
@@ -29,8 +31,8 @@ async def start(message : Message):
     markup = ReplyKeyboardMarkup(
         keyboard=[
             # each one of these are keyboard rows.
-            [KeyboardButton(text='First Button')], #row 1
-            [KeyboardButton(text='Second Button'), KeyboardButton(text='Third Button')] # row 2
+            [KeyboardButton(text='First Button', style=ButtonStyle.PRIMARY)], #row 1
+            [KeyboardButton(text='Second Button',style=ButtonStyle.DANGER), KeyboardButton(text='Third Button',style=ButtonStyle.SUCCESS)] # row 2
         ]
     )
 
