@@ -6,6 +6,7 @@ from aiogram.types import (Message, CallbackQuery, FSInputFile,
                            ReplyKeyboardMarkup, KeyboardButton, 
                            InlineKeyboardMarkup, InlineKeyboardButton)
 from aiogram.enums import ParseMode
+from operations import create_table,get_user, insert_user
 
 load_dotenv()
 dp = Dispatcher()
@@ -14,6 +15,12 @@ dp = Dispatcher()
 @dp.message(filters.CommandStart())
 #aiogram is async so we should write everythings async
 async def start(message : Message):
+
+    user = await get_user(message.from_user.id)
+    if user is None:
+        await insert_user(message.from_user.id, message.from_user.full_name, message.from_user.username)
+
+
     markup = ReplyKeyboardMarkup(
         keyboard=[
             # each one of these are keyboard rows.
@@ -21,7 +28,9 @@ async def start(message : Message):
             [KeyboardButton(text='Second Button'), KeyboardButton(text='Third Button')] # row 2
         ]
     )
+
     ph = FSInputFile(path='docs/2.png')
+
     await message.answer_photo(
         photo=ph,
         caption=f'Welcome to RemindTel Bot Dear {html.bold(message.from_user.first_name)}!',
@@ -83,6 +92,7 @@ async def callback(call : CallbackQuery):
 
 
 async def main():
+    await create_table()
     bot = Bot(os.getenv("TELEGRAM_BOT_TOKEN"))
     await dp.start_polling(bot)
 

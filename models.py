@@ -11,5 +11,6 @@ class User(Base):
 
     id : Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id : Mapped[int] = mapped_column(BIGINT(), unique=True)
-    full_name = Mapped[str] = mapped_column(VARCHAR(128), nullable=True)
-    join_date = Mapped[datetime] = mapped_column(default=datetime.now)
+    username : Mapped[str] = mapped_column(VARCHAR(128), nullable=True, unique=True)
+    full_name : Mapped[str] = mapped_column(VARCHAR(128), nullable=True)
+    join_date : Mapped[datetime] = mapped_column(default=datetime.now)
