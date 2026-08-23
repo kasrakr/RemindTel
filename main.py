@@ -1,10 +1,11 @@
 import asyncio
 import os
 from dotenv import load_dotenv
-from aiogram import Dispatcher,filters,Bot, F
+from aiogram import Dispatcher,filters,Bot, F, html
 from aiogram.types import (Message, CallbackQuery, FSInputFile, 
                            ReplyKeyboardMarkup, KeyboardButton, 
                            InlineKeyboardMarkup, InlineKeyboardButton)
+from aiogram.enums import ParseMode
 
 load_dotenv()
 dp = Dispatcher()
@@ -23,12 +24,14 @@ async def start(message : Message):
     ph = FSInputFile(path='docs/2.png')
     await message.answer_photo(
         photo=ph,
-        caption='Welcome to RemindTel Bot!',
+        caption=f'Welcome to RemindTel Bot Dear {html.bold(message.from_user.first_name)}!',
         # reply markup is for buttons
-        reply_markup=markup
+        reply_markup=markup,
+        parse_mode=ParseMode.HTML
     )
 
 # we have also answervideo and answeraudio #
+
 
 @dp.message(filters.Command("help", prefix='*'))
 async def Help(message : Message):
@@ -44,13 +47,40 @@ async def Help(message : Message):
         reply_markup= markup
     )
 
+
+
 @dp.message(F.text == 'First Button')
 async def handleEverything(message : Message):
+    # user info
+    # message.from_user.first_name
+    #chat info
+    # message.chat.id
+
     await message.reply(text=message.text)
 
-@dp.callback_query()
+
+
+@dp.callback_query(F.data == 'btn1')
 async def callback(call : CallbackQuery):
-    print(call)
+    # user info
+    # call.from_user.first_name
+
+    await call.answer(
+        text='You clicked on First Button!',
+        show_alert=True
+        )
+
+    # sending message via bot chat id is necessary
+    await call.bot.send_message(
+        chat_id=call.message.chat.id,
+        text='Successfully Clicked!'
+    )
+
+
+
+
+
+
 
 async def main():
     bot = Bot(os.getenv("TELEGRAM_BOT_TOKEN"))
