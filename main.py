@@ -1,16 +1,20 @@
 import asyncio
 import os
+from enum import Enum, auto
 from dotenv import load_dotenv
 from aiogram import Dispatcher,filters,Bot, F, html
 from aiogram.types import (Message, CallbackQuery, FSInputFile, 
                            ReplyKeyboardMarkup, KeyboardButton, 
                            InlineKeyboardMarkup, InlineKeyboardButton)
 from aiogram.enums import ParseMode
-from operations import create_table
+from operations import create_table, get_users
 from middlewares import Requirements
 from filters import isAdmin, Photo
+from aiostep import MemoryStateStorage
+from aiostep.utils import IsState
 
-
+states = MemoryStateStorage()
+# for loading secret variables from .env
 load_dotenv()
 dp = Dispatcher()
 #for loading and runing middlewares
@@ -19,7 +23,7 @@ admins = [int(os.getenv("ADMINS"))]
 
 
 # message handler. can recieve messages #that would be start only with /start
-@dp.message(filters.CommandStart(), isAdmin(admins))
+@dp.message(filters.CommandStart())
 #aiogram is async so we should write everythings async
 async def start(message : Message):
     markup = ReplyKeyboardMarkup(
@@ -41,6 +45,23 @@ async def start(message : Message):
     )
 
 # we have also answervideo and answeraudio #
+
+
+@dp.message(F.text == '/broad', isAdmin(admins))
+async def boradcast(message : Message):
+    await message.answer(f"Send your Message Admin {message.from_user.full_name}")
+    states.set_state(message.from_user.id, "BRD")
+
+@dp.message(IsState("BRD", states))
+async def start_broadcast (message : Message):
+    users = await get_users()
+
+    for u in users:
+        # forward send message with forward tag
+        # await message.forward(u.user_id)
+        await message.copy_to(u.user_id)
+
+    await message.answer("Broadcast is Finished")
 
 
 

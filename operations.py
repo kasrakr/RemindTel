@@ -25,3 +25,11 @@ async def get_user(user_id: int) -> User | None :
         #it would find user and return if its not valid return none
         user = await session.scalar(query)
     return user
+
+
+async def get_users() -> list[User]:
+    query = select(User)
+    async with Session() as session:
+        #it would find all user and return if its not valid return none
+        users = await session.scalars(query)
+    return users.unique().all()
