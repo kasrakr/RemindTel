@@ -18,6 +18,7 @@ async def insert_user(user_id: int, full_name: str | None=None, username: str |N
         session.add(user)
     return user
 
+
 async def get_user(user_id: int) -> User | None :
     query = select(User).where(User.user_id == user_id)
     async with Session() as session:

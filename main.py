@@ -8,19 +8,20 @@ from aiogram.types import (Message, CallbackQuery, FSInputFile,
 from aiogram.enums import ParseMode
 from operations import create_table
 from middlewares import Requirements
+from filters import isAdmin, Photo
+
 
 load_dotenv()
 dp = Dispatcher()
 #for loading and runing middlewares
 dp.message.outer_middleware(Requirements())
+admins = [int(os.getenv("ADMINS"))]
+
 
 # message handler. can recieve messages #that would be start only with /start
-@dp.message(filters.CommandStart())
+@dp.message(filters.CommandStart(), isAdmin(admins))
 #aiogram is async so we should write everythings async
 async def start(message : Message):
-
-   
-
     markup = ReplyKeyboardMarkup(
         keyboard=[
             # each one of these are keyboard rows.
@@ -40,6 +41,7 @@ async def start(message : Message):
     )
 
 # we have also answervideo and answeraudio #
+
 
 
 @dp.message(filters.Command("help", prefix='*'))
@@ -86,7 +88,10 @@ async def callback(call : CallbackQuery):
     )
 
 
-
+@dp.message(Photo())
+async def get_photo(message: Message):
+    #[-1] means save in highest quality
+    await message.bot.download(message.photo[-1], "usersimages/image.jpg")
 
 
 

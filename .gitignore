@@ -1,4 +1,5 @@
 .env
+usersimages/
 aiogram.db
 env/
 __pycache__/
