@@ -11,7 +11,7 @@ from aiogram.types import (
     KeyboardButton,
     InlineKeyboardMarkup,
     InlineKeyboardButton,
-    ReactionTypeEmoji
+    ReactionTypeEmoji,
 )
 from aiogram.enums import ParseMode, ButtonStyle
 
@@ -27,6 +27,7 @@ from filters import isAdmin
 from aiostep import MemoryStateStorage
 from aiostep.utils import IsState
 from persian_time import parse_reminder
+from llm_parser import parse_reminder_with_llm
 from scheduler import (
     schedule_reminder,
     load_pending_reminders,
@@ -53,14 +54,14 @@ async def start(message: Message):
                 InlineKeyboardButton(
                     text="راهنما❓",
                     style=ButtonStyle.PRIMARY,
-                    callback_data="help"
+                    callback_data="help",
                 )
             ],
             [
                 InlineKeyboardButton(
                     text="تماس📞",
                     style=ButtonStyle.SUCCESS,
-                    callback_data="contact"
+                    callback_data="contact",
                 ),
             ],
         ]
@@ -70,7 +71,7 @@ async def start(message: Message):
     await message.answer_photo(
         photo=ph,
         caption=(
-            f"به ربات RrmindTel خوش آمدید "
+            f"به ربات RemindTel خوش آمدید "
             f"{html.bold(message.from_user.first_name)} عزیز!"
         ),
         reply_markup=markup,
@@ -84,12 +85,9 @@ async def start(message: Message):
                 KeyboardButton(text="تماس📞", style=ButtonStyle.DANGER),
             ]
         ],
-        resize_keyboard=True
+        resize_keyboard=True,
     )
-    await message.answer(
-        text='',
-        reply_markup=reply_markup
-    )
+    await message.answer(text="", reply_markup=reply_markup)
 
 
 @dp.message(F.text == "/broad", isAdmin(admins))
@@ -114,15 +112,18 @@ async def start_broadcast(message: Message):
 async def Help(call: CallbackQuery):
     await call.bot.send_message(
         chat_id=call.message.chat.id,
-        text="⚪برای تنظیم کردن قرارها و یادآور ها فقط یک متن عادی با ساعت و  روز برام بفرست.\n\n"
-        "مثال: جلسه با آقای احمدی چهارشنبه ساعت 10✅\n\n"
-        "Currrently only works with Persian language. English is comming on later updates.",
+        text=(
+            "⚪برای تنظیم کردن قرارها و یادآور ها فقط یک متن عادی برای من بفرست.\n\n"
+            "مثال فارسی: جلسه با آقای احمدی چهارشنبه ساعت 10✅\n"
+            "مثال انگلیسی: Remind me to call Sara tomorrow at 5 PM✅\n\n"
+            "می‌توانی جمله را طبیعی بنویسی؛ ربات در صورت نیاز از هوش مصنوعی برای فهم زمان استفاده می‌کند."
+        ),
     )
     await call.answer()
 
 
 @dp.message(F.text == "تماس📞")
-async def contact_message(message:Message):
+async def contact_message(message: Message):
     markup = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="Telegram", url="https://t.me/Lowkasra", style=ButtonStyle.PRIMARY)],
@@ -133,9 +134,8 @@ async def contact_message(message:Message):
     )
     await message.answer(
         text="خوشحال میشم نظراتت رو ببینم:",
-        reply_markup=markup
+        reply_markup=markup,
     )
-
 
 
 @dp.callback_query(F.data == "contact")
@@ -151,9 +151,10 @@ async def contact(call: CallbackQuery):
     await call.bot.send_message(
         chat_id=call.message.chat.id,
         text="خوشحال میشم نظراتت رو ببینم:",
-        reply_markup=markup
+        reply_markup=markup,
     )
     await call.answer()
+
 
 _PERSIAN_WEEKDAY_NAMES = ["دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه", "شنبه", "یکشنبه"]
 
@@ -192,10 +193,7 @@ async def _show_user_reminders(message: Message) -> None:
             f"🗓 {_format_when(reminder.remind_at)}\n\n"
         )
 
-    await message.answer(
-        text,
-        reply_markup=_reminders_markup(reminders),
-    )
+    await message.answer(text, reply_markup=_reminders_markup(reminders))
 
 
 @dp.message(F.text == "یادآوری های من⏱️")
@@ -259,26 +257,25 @@ async def confirm_delete_reminder(call: CallbackQuery):
         except Exception:
             pass
 
-    if call.message:
-        reminders = await get_user_reminders(call.from_user.id)
-        if reminders:
-            text = "📋 یادآوری‌های شما:\n\n"
-            for reminder in reminders:
-                text += (
-                    f"🆔 #{reminder.id}\n"
-                    f"📝 {reminder.text}\n"
-                    f"🗓 {_format_when(reminder.remind_at)}\n\n"
-                )
-            await call.bot.send_message(
-                chat_id=call.message.chat.id,
-                text=text,
-                reply_markup=_reminders_markup(reminders),
+    reminders = await get_user_reminders(call.from_user.id)
+    if reminders:
+        text = "📋 یادآوری‌های شما:\n\n"
+        for reminder in reminders:
+            text += (
+                f"🆔 #{reminder.id}\n"
+                f"📝 {reminder.text}\n"
+                f"🗓 {_format_when(reminder.remind_at)}\n\n"
             )
-        else:
-            await call.bot.send_message(
-                chat_id=call.message.chat.id,
-                text="⏱️ شما هیچ یادآوری‌ای ندارید.",
-            )
+        await call.bot.send_message(
+            chat_id=call.message.chat.id,
+            text=text,
+            reply_markup=_reminders_markup(reminders),
+        )
+    else:
+        await call.bot.send_message(
+            chat_id=call.message.chat.id,
+            text="⏱️ شما هیچ یادآوری‌ای ندارید.",
+        )
 
 
 @dp.callback_query(F.data == "cancel_delete")
@@ -293,13 +290,18 @@ async def cancel_delete(call: CallbackQuery):
 
 @dp.message(F.text, ~F.text.startswith("/"))
 async def set_reminder(message: Message):
+    # Fast local parser first: normal reminders do not need an API call.
     parsed = parse_reminder(message.text)
+
+    # LLM fallback: handles natural Persian/English when the local parser cannot.
+    if parsed is None:
+        parsed = await parse_reminder_with_llm(message.text)
 
     if parsed is None:
         await message.answer(
-            "متوجه روز و ساعت پیام شما نشدم 🙁\n"
-            "لطفاً یک روز هفته یا «امروز/فردا» و یک ساعت مشخص کنید.\n"
-            "مثال: جلسه با آقای احمدی چهارشنبه ساعت 10"
+            "متوجه یادآوری شما نشدم 🙁\n"
+            "مثال فارسی: فردا حدود ساعت پنج به علی زنگ بزن\n"
+            "Example: Remind me to call Sara tomorrow around 5 PM"
         )
         return
 
