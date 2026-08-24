@@ -55,7 +55,6 @@ async def parse_reminder_with_llm(
     text: str,
     now: datetime | None = None,
 ) -> tuple[str, datetime] | None:
-    """Parse a reminder with an LLM. Returns None when unavailable/uncertain."""
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         return None
