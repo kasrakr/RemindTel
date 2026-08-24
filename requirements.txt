@@ -4,3 +4,4 @@ SQLAlchemy>=2.0
 aiosqlite>=0.20
 aiostep>=0.3.7
 APScheduler>=3.11
+openai>=1.0
