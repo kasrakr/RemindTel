@@ -1,0 +1,2 @@
+# Install these in addition to requirements.txt when LLM fallback is enabled
+openai>=1.0
