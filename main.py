@@ -11,6 +11,7 @@ from aiogram.types import (
     KeyboardButton,
     InlineKeyboardMarkup,
     InlineKeyboardButton,
+    ReactionTypeEmoji
 )
 from aiogram.enums import ParseMode, ButtonStyle
 
@@ -295,6 +296,11 @@ async def set_reminder(message: Message):
 
     await schedule_reminder(message.bot, reminder)
 
+    await message.react(
+        reaction=[
+            ReactionTypeEmoji(emoji="❤️‍🔥")
+        ]
+    )
     await message.answer(
         f"✅ یادآوری تنظیم شد:\n"
         f"📝 {description}\n"
