@@ -79,7 +79,9 @@ async def start(message: Message):
     reply_markup = ReplyKeyboardMarkup(
         keyboard=[
             [
-                KeyboardButton(text="یادآوری های من⏱️", style=ButtonStyle.PRIMARY)
+                KeyboardButton(text="/start", style=ButtonStyle.SUCCESS),
+                KeyboardButton(text="یادآوری های من⏱️", style=ButtonStyle.PRIMARY),
+                KeyboardButton(text="تماس📞", style=ButtonStyle.DANGER),
             ]
         ],
         resize_keyboard=True
@@ -119,6 +121,23 @@ async def Help(call: CallbackQuery):
     await call.answer()
 
 
+@dp.message(F.text == "تماس📞")
+async def contact_message(message:Message):
+    markup = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="Telegram", url="https://t.me/Lowkasra", style=ButtonStyle.PRIMARY)],
+            [InlineKeyboardButton(text="Linkedin", url="https://www.linkedin.com/in/kasrakarimian/", style=ButtonStyle.SUCCESS)],
+            [InlineKeyboardButton(text="GitHub", url="https://github.com/kasrakr")],
+            [InlineKeyboardButton(text="Buy Me a Coffee!", url="https://coffeebede.com/highkasra", style=ButtonStyle.DANGER)],
+        ]
+    )
+    await message.answer(
+        text="Glad to see Your comments:",
+        reply_markup=markup
+    )
+
+
+
 @dp.callback_query(F.data == "contact")
 async def contact(call: CallbackQuery):
     markup = InlineKeyboardMarkup(
@@ -135,7 +154,6 @@ async def contact(call: CallbackQuery):
         reply_markup=markup
     )
     await call.answer()
-
 
 _PERSIAN_WEEKDAY_NAMES = ["دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه", "شنبه", "یکشنبه"]
 
