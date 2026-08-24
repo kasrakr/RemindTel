@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import calendar
 import re
 from datetime import datetime, timedelta
 
@@ -109,6 +110,20 @@ _UNRESOLVED_DATE_RE = re.compile(
     r"(روز|شب)\s+(قبل|بعد)|مونده\s+به|مانده\s+به"
 )
 
+_OFFSET_UNIT_WORDS: dict[str, str] = {
+    "روز": "d",
+    "هفته": "w",
+    "ماه": "m",
+    "سال": "y",
+}
+_OFFSET_UNIT_RE = "|".join(sorted(_OFFSET_UNIT_WORDS, key=lambda w: -len(w)))
+_COUNT_RE = rf"(?:\d+|{_PERSIAN_HOUR_RE})"
+_N_UNITS_LATER_RE = re.compile(
+    rf"(?:({_COUNT_RE})\s+)?({_OFFSET_UNIT_RE})[‌ ]?(?:ی[‌ ]?)?"
+    rf"(?:دیگه|دیگر|بعد)"
+)
+
+
 def _normalize(text: str) -> str:
     return text.translate(_PERSIAN_DIGITS)
 
@@ -118,6 +133,20 @@ def _hour_from_token(token: str) -> int:
     if token in _PERSIAN_HOUR_WORDS:
         return _PERSIAN_HOUR_WORDS[token]
     return int(token)
+
+
+def _add_months(d, months: int):
+    m = d.month - 1 + months
+    year = d.year + m // 12
+    month = m % 12 + 1
+    day = min(d.day, calendar.monthrange(year, month)[1])
+    return d.replace(year=year, month=month, day=day)
+
+
+def _add_years(d, years: int):
+    target_year = d.year + years
+    day = min(d.day, calendar.monthrange(target_year, d.month)[1])
+    return d.replace(year=target_year, day=day)
 
 
 def _apply_period(hour: int, period: str | None) -> int:
@@ -199,6 +228,25 @@ def parse_reminder(
                 spans.append((idx, idx + len(word)))
                 break
 
+    # Relative offsets such as «هفته بعد», «ماه دیگه», «دو هفته بعد».
+    offset_match = _N_UNITS_LATER_RE.search(working)
+    if offset_match:
+        spans.append((offset_match.start(), offset_match.end()))
+        count = _hour_from_token(offset_match.group(1)) if offset_match.group(1) else 1
+        unit = _OFFSET_UNIT_WORDS[offset_match.group(2)]
+
+        if target_date is None:
+            target_date = now.date()
+
+        if unit == "d":
+            target_date += timedelta(days=count)
+        elif unit == "w":
+            target_date += timedelta(weeks=count)
+        elif unit == "m":
+            target_date = _add_months(target_date, count)
+        elif unit == "y":
+            target_date = _add_years(target_date, count)
+
     hour: int | None = None
     minute = 0
 
@@ -256,7 +304,7 @@ def parse_reminder(
 
     if target_date is None:
         if _UNRESOLVED_DATE_RE.search(working):
-            return None          
+            return None
         target_date = now.date()
 
     if hour is None:
