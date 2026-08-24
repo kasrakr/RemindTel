@@ -71,13 +71,7 @@ _TIME_RE = re.compile(
     rf"\s*({_PERIOD_RE})?"
 )
 
-# Natural expressions that do not necessarily contain the word «ساعت».
-# Examples:
-#   یک ربع به سه       -> 02:45
-#   ربع به سه          -> 02:45
-#   نیم ساعت بعد از دو -> 02:30
-#   سه و نیم           -> 03:30
-#   حدود ساعت پنج      -> handled by _TIME_RE; «حدود» is left as description
+
 _TO_QUARTER_RE = re.compile(
     rf"(?:یک\s+)?ربع\s+به\s+({_HOUR_RE})"
 )
@@ -163,7 +157,6 @@ def _strip_spans(text: str, spans: list[tuple[int, int]]) -> str:
     out.append(text[last:])
     cleaned = "".join(out)
 
-    # drop dangling filler words / connectors left behind
     for w in _FILLER_WORDS:
         cleaned = re.sub(rf"(?:^|\s){re.escape(w)}(?=\s|$)", " ", cleaned)
 
