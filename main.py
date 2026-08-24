@@ -16,7 +16,7 @@ from aiogram.enums import ParseMode, ButtonStyle
 
 from operations import create_table, get_users, insert_reminder,get_user_reminders
 from middlewares import Requirements
-from filters import isAdmin, Photo
+from filters import isAdmin
 from aiostep import MemoryStateStorage
 from aiostep.utils import IsState
 from persian_time import parse_reminder
