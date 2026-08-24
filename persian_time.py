@@ -71,7 +71,6 @@ _TIME_RE = re.compile(
     rf"\s*({_PERIOD_RE})?"
 )
 
-
 _TO_QUARTER_RE = re.compile(
     rf"(?:یک\s+)?ربع\s+به\s+({_HOUR_RE})"
 )
@@ -143,7 +142,6 @@ def _guess_hour_without_period(hour: int) -> int:
 
 
 def _natural_hour(hour: int) -> int:
-    """Apply the bot's existing AM/PM guess to a natural-language hour."""
     return _guess_hour_without_period(hour)
 
 
@@ -162,7 +160,6 @@ def _strip_spans(text: str, spans: list[tuple[int, int]]) -> str:
 
     cleaned = re.sub(r"\s+", " ", cleaned).strip(" \t\n\r،,.:؛-")
     return cleaned
-
 
 
 def parse_reminder(
@@ -201,7 +198,6 @@ def parse_reminder(
     hour: int | None = None
     minute = 0
 
-    # 1) «یک ربع به سه» / «ربع به سه»
     m = _TO_QUARTER_RE.search(working)
     if m:
         base_hour = _natural_hour(_hour_from_token(m.group(1)))
@@ -209,7 +205,6 @@ def parse_reminder(
         hour, minute = divmod(total_minutes, 60)
         spans.append((m.start(), m.end()))
 
-    # 2) «نیم ساعت بعد از دو» / «نیم ساعت بعد دو»
     if hour is None:
         m = _HALF_AFTER_RE.search(working)
         if m:
@@ -218,7 +213,6 @@ def parse_reminder(
             hour, minute = divmod(total_minutes, 60)
             spans.append((m.start(), m.end()))
 
-    # 3) «سه و نیم» / «ساعت سه و نیم»
     if hour is None:
         m = _HOUR_AND_HALF_RE.search(working)
         if m:
@@ -226,7 +220,6 @@ def parse_reminder(
             minute = 30
             spans.append((m.start(), m.end()))
 
-    # 4) Existing explicit «ساعت ...» parser.
     if hour is None:
         m = _TIME_RE.search(working)
         if m:
@@ -247,7 +240,6 @@ def parse_reminder(
 
             spans.append((m.start(), m.end()))
 
-    # 5) A standalone period such as «فردا شب».
     if hour is None:
         pm = _STANDALONE_PERIOD_RE.search(working)
         if pm:
