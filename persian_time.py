@@ -104,6 +104,10 @@ _FILLER_WORDS = [
     "تقریباً",
 ]
 
+_UNRESOLVED_DATE_RE = re.compile(
+    r"عید|هفته|رمضان|نوروز|یلدا|چهارشنبه[‌ ]?سوری|تاسوعا|عاشورا|"
+    r"(روز|شب)\s+(قبل|بعد)|مونده\s+به|مانده\s+به"
+)
 
 def _normalize(text: str) -> str:
     return text.translate(_PERSIAN_DIGITS)
@@ -251,6 +255,8 @@ def parse_reminder(
         return None
 
     if target_date is None:
+        if _UNRESOLVED_DATE_RE.search(working):
+            return None          
         target_date = now.date()
 
     if hour is None:

@@ -1,5 +1,6 @@
 import asyncio
 import os
+import re
 
 from dotenv import load_dotenv
 from aiogram import Dispatcher, filters, Bot, F, html
@@ -200,13 +201,26 @@ async def cancel_delete(call: CallbackQuery):
         pass
 
 
+
+_NEEDS_LLM_RE = re.compile(
+    r"عید|رمضان|نوروز|یلدا|چهارشنبه[‌ ]?سوری|تاسوعا|عاشورا|"
+    r"امتحان|تولد|سالگرد|مونده\s+به|مانده\s+به|قبل|بعد(?!\s*از\s*ظهر|ازظهر)"
+)
+
+
 @dp.message(F.text, ~F.text.startswith("/"))
 async def set_reminder(message: Message):
+    if _NEEDS_LLM_RE.search(message.text):
+        parsed = await parse_reminder_with_llm(message.text)
+    else:
+        parsed = parse_reminder(message.text)
+        if parsed is None:
+            parsed = await parse_reminder_with_llm(message.text)
     user = await get_user(message.from_user.id)
     lang = lang_of(user)
-    parsed = await parse_reminder_with_llm(message.text)
-    if parsed is None:
-        parsed = parse_reminder(message.text)
+    parsed = parse_reminder(message.text)
+    if  parsed is None:
+        parsed = await parse_reminder_with_llm(message.text)
     if parsed is None:
         await message.answer(t(lang, "parse_error"), reply_markup=menu(lang))
         return
