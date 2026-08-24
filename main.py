@@ -85,38 +85,13 @@ async def start_broadcast(message: Message):
     await message.answer("Broadcast is Finished")
 
 
-@dp.message(F.data == "help")
-async def Help(message: Message):
-    markup = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(
-                    text="First Button",
-                    callback_data="btn1",
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    text="Second Button",
-                    callback_data="btn2",
-                ),
-                InlineKeyboardButton(
-                    text="Third Button",
-                    callback_data="btn3",
-                ),
-            ],
-            [
-                InlineKeyboardButton(
-                    text="Fourth Button",
-                    url="https://t.me/lowkasra",
-                )
-            ],
-        ]
-    )
+@dp.callback_query(F.data == "help")
+async def Help(call : CallbackQuery):
 
-    await message.answer(
-        text="How can i help you?",
-        reply_markup=markup,
+    await call.bot.send_message(
+        chat_id=call.message.chat.id,
+        text="For setting your meetings and important date just send it normally i will remind it to you normally:\n" 
+        "ex: جلسه با آقای احمدی چهارشنبه ساعت 10",
     )
 
 
