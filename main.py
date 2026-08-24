@@ -290,12 +290,12 @@ async def cancel_delete(call: CallbackQuery):
 
 @dp.message(F.text, ~F.text.startswith("/"))
 async def set_reminder(message: Message):
-    # Fast local parser first: normal reminders do not need an API call.
-    parsed = parse_reminder(message.text)
+    # Natural-language parsing: let the LLM understand the whole sentence first.
+    parsed = await parse_reminder_with_llm(message.text)
 
-    # LLM fallback: handles natural Persian/English when the local parser cannot.
+    # Fast local fallback: keeps the bot usable if the LLM is unavailable.
     if parsed is None:
-        parsed = await parse_reminder_with_llm(message.text)
+        parsed = parse_reminder(message.text)
 
     if parsed is None:
         await message.answer(
