@@ -23,6 +23,11 @@ IMPORTANT:
 DATE/TIME UNDERSTANDING:
 - امروز, فردا, پس فردا, امشب, فردا شب, هفته بعد, شنبه بعد, دوشنبه آینده, etc.
 - Relative expressions: «دو ساعت دیگه», «نیم ساعت بعد», «سه روز دیگه», «دو روز قبل از...», etc.
+- Calendar offsets: «هفته دیگه», «هفته بعد», «دو هفته دیگه», «سه هفته بعد».
+- Month offsets: «ماه دیگه», «ماه بعد», «دو ماه دیگه», «سه ماه بعد».
+- Year offsets: «سال دیگه», «سال بعد», «دو سال دیگه», «سه سال بعد».
+- For month offsets, preserve calendar semantics rather than assuming a fixed number of days.
+- For year offsets, preserve calendar semantics and safely handle February 29 in non-leap years.
 - Natural clock expressions: «سه و نیم», «یک ربع به سه», «ربع بعد از دو», «حدود پنج», «نزدیک ساعت شش», etc.
 - Explicit periods: صبح, ظهر, عصر, بعدازظهر, شب.
 - Bare hours 1-6 usually mean afternoon/evening to match the bot's existing behavior.
