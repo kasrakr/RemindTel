@@ -1,15 +1,18 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiogram import Bot
 
-from operations import get_pending_reminders, mark_reminder_sent
+from operations import get_pending_reminders, mark_reminder_sent, get_user
 
 scheduler = AsyncIOScheduler()
 
 
-def _build_job(bot: Bot, reminder_id: int, chat_id: int, text: str):
+async def _build_job(bot: Bot, reminder_id: int, chat_id: int, user_id: int, text: str):
     async def _send():
         try:
-            await bot.send_message(chat_id, f"⏰ یادآوری:\n{text}")
+            user = await get_user(user_id)
+            language = getattr(user, "language", "en") if user else "en"
+            title = "⏰ یادآوری" if language == "fa" else "⏰ Reminder"
+            await bot.send_message(chat_id, f"{title}:\n{text}")
         except Exception:
             pass
         finally:
@@ -19,8 +22,15 @@ def _build_job(bot: Bot, reminder_id: int, chat_id: int, text: str):
 
 
 async def schedule_reminder(bot: Bot, reminder) -> None:
+    job = await _build_job(
+        bot,
+        reminder.id,
+        reminder.chat_id,
+        reminder.user_id,
+        reminder.text,
+    )
     scheduler.add_job(
-        _build_job(bot, reminder.id, reminder.chat_id, reminder.text),
+        job,
         trigger="date",
         run_date=reminder.remind_at,
         id=f"reminder-{reminder.id}",
@@ -31,8 +41,7 @@ async def schedule_reminder(bot: Bot, reminder) -> None:
 
 async def cancel_reminder(reminder_id: int) -> None:
     job_id = f"reminder-{reminder_id}"
-    job = scheduler.get_job(job_id)
-    if job is not None:
+    if scheduler.get_job(job_id) is not None:
         scheduler.remove_job(job_id)
 
 
