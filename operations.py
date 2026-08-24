@@ -41,7 +41,7 @@ async def insert_reminder(user_id: int, chat_id: int, text: str, remind_at: date
 
 
 async def get_pending_reminders() -> list[Reminder]:
-    query = select(Reminder).where(Reminder.is_sent == False)  # noqa: E712
+    query = select(Reminder).where(Reminder.is_sent == False)  
     async with Session() as session:
         reminders = await session.scalars(query)
     return reminders.unique().all()
@@ -55,14 +55,16 @@ async def mark_reminder_sent(reminder_id: int) -> None:
 
 
 async def get_user_reminders(user_id: int) -> list[Reminder]:
-    query = select(Reminder).where(Reminder.user_id == user_id)
+    query = select(Reminder).where(
+        Reminder.user_id == user_id,
+        Reminder.is_sent == False,  
+    )
     async with Session() as session:
         reminders = await session.scalars(query)
     return reminders.unique().all()
 
 
 async def delete_reminder(reminder_id: int, user_id: int) -> bool:
-    """Delete one reminder only if it belongs to the requested user."""
     async with Session.begin() as session:
         query = select(Reminder).where(
             Reminder.id == reminder_id,
