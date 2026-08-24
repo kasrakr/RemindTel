@@ -54,3 +54,10 @@ async def mark_reminder_sent(reminder_id: int) -> None:
         reminder = await session.get(Reminder, reminder_id)
         if reminder is not None:
             reminder.is_sent = True
+
+async def get_user_reminders(user_id : int) ->list[Reminder]:
+    query = select(Reminder).where(Reminder.user_id == user_id)
+    async with Session() as session:
+        reminders = await session.scalars(query)
+    return reminders.unique().all()
+    

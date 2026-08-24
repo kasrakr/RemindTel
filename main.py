@@ -14,7 +14,7 @@ from aiogram.types import (
 )
 from aiogram.enums import ParseMode, ButtonStyle
 
-from operations import create_table, get_users, insert_reminder
+from operations import create_table, get_users, insert_reminder,get_user_reminders
 from middlewares import Requirements
 from filters import isAdmin, Photo
 from aiostep import MemoryStateStorage
@@ -54,8 +54,8 @@ async def start(message: Message):
                 ),
             ],
         ]
-    )
 
+    )
     ph = FSInputFile(path="docs/2.png")
 
     await message.answer_photo(
@@ -67,6 +67,20 @@ async def start(message: Message):
         reply_markup=markup,
         parse_mode=ParseMode.HTML,
     )
+    reply_markup = ReplyKeyboardMarkup(
+            keyboard=[
+                [
+                    KeyboardButton(text="یادآوری های من⏱️",style=ButtonStyle.PRIMARY)
+                ]
+            ],
+            resize_keyboard=True
+            )
+    await message.answer(
+        text="Let's satrt Building:",
+        reply_markup=reply_markup
+    )
+
+
 
 
 @dp.message(F.text == "/broad", isAdmin(admins))
@@ -104,11 +118,12 @@ async def Help(call : CallbackQuery):
             [InlineKeyboardButton(text="Telegram", url="https://t.me/Lowkasra", style=ButtonStyle.PRIMARY)],
             [InlineKeyboardButton(text="Linkedin", url="https://www.linkedin.com/in/kasrakarimian/", style=ButtonStyle.SUCCESS)],
             [InlineKeyboardButton(text="GitHub", url="https://github.com/kasrakr")],
+            [InlineKeyboardButton(text="Buy Me a Coffee!", url="https://coffeebede.com/highkasra",style=ButtonStyle.DANGER)],
         ]
     )
     await call.bot.send_message(
         chat_id=call.message.chat.id,
-        text="Glad to see You comments:",
+        text="Glad to see Your comments:",
         reply_markup=markup
     )
 
@@ -120,6 +135,25 @@ _PERSIAN_WEEKDAY_NAMES = ["دوشنبه", "سه‌شنبه", "چهارشنبه",
 def _format_when(dt) -> str:
     return f"{_PERSIAN_WEEKDAY_NAMES[dt.weekday()]} {dt.strftime('%Y-%m-%d')} ساعت {dt.strftime('%H:%M')}"
 
+
+
+@dp.message(F.text == "یادآوری های من⏱️")
+async def showreminders(message: Message):
+    reminders = await get_user_reminders(message.from_user.id)
+
+    if not reminders:
+        await message.answer("⏱️ شما هیچ یادآوری‌ای ندارید.")
+        return
+
+    text = "📋 یادآوری‌های شما:\n\n"
+
+    for reminder in reminders:
+        text += (
+            f"📝 {reminder.text}\n"
+            f"🗓 {_format_when(reminder.remind_at)}\n\n"
+        )
+
+    await message.answer(text)
 
 
 @dp.message(F.text, ~F.text.startswith("/"))
@@ -150,6 +184,12 @@ async def set_reminder(message: Message):
         f"📝 {description}\n"
         f"🗓 {_format_when(remind_at)}"
     )
+
+
+
+
+
+
 
 
 async def main():
