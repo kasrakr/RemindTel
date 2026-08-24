@@ -3,47 +3,61 @@ import os
 
 from dotenv import load_dotenv
 from aiogram import Dispatcher, filters, Bot, F, html
-from aiogram.types import (
-    Message,
-    CallbackQuery,
-    FSInputFile,
-    ReplyKeyboardMarkup,
-    KeyboardButton,
-    InlineKeyboardMarkup,
-    InlineKeyboardButton,
-    ReactionTypeEmoji,
-)
+from aiogram.types import Message, CallbackQuery, FSInputFile, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton, ReactionTypeEmoji
 from aiogram.enums import ParseMode, ButtonStyle
 
-from operations import (
-    create_table,
-    get_users,
-    insert_reminder,
-    get_user_reminders,
-    delete_reminder,
-)
+from operations import create_table, get_users, insert_reminder, get_user, get_user_reminders, delete_reminder, set_user_language
 from middlewares import Requirements
 from filters import isAdmin
 from aiostep import MemoryStateStorage
 from aiostep.utils import IsState
 from persian_time import parse_reminder
 from llm_parser import parse_reminder_with_llm
-from scheduler import (
-    schedule_reminder,
-    load_pending_reminders,
-    start_scheduler,
-    cancel_reminder,
-)
-
+from scheduler import schedule_reminder, load_pending_reminders, start_scheduler, cancel_reminder
+from i18n import TEXTS, t
 
 states = MemoryStateStorage()
-
 load_dotenv()
-
 dp = Dispatcher()
 dp.message.outer_middleware(Requirements())
-
 admins = [int(os.getenv("ADMINS"))]
+
+
+def lang_of(user) -> str:
+    return getattr(user, "language", "en") if user else "en"
+
+
+def menu(lang: str) -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text=t(lang, "my_reminders"), style=ButtonStyle.PRIMARY), KeyboardButton(text=t(lang, "help"), style=ButtonStyle.PRIMARY)],
+            [KeyboardButton(text=t(lang, "contact"), style=ButtonStyle.DANGER), KeyboardButton(text=t(lang, "language_button"), style=ButtonStyle.SUCCESS)],
+        ],
+        resize_keyboard=True,
+    )
+
+
+def language_markup() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🇮🇷 فارسی", callback_data="lang:fa"), InlineKeyboardButton(text="🇬🇧 English", callback_data="lang:en")]])
+
+
+def format_when(dt, lang: str) -> str:
+    return f"{TEXTS[lang]['weekday'][dt.weekday()]} {dt.strftime('%Y-%m-%d %H:%M')}"
+
+
+def reminders_markup(reminders, lang: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=t(lang, "delete", id=r.id), callback_data=f"delete_reminder:{r.id}")] for r in reminders])
+
+
+async def show_user_reminders(message: Message, lang: str):
+    reminders = await get_user_reminders(message.from_user.id)
+    if not reminders:
+        await message.answer(t(lang, "no_reminders"), reply_markup=menu(lang))
+        return
+    text = t(lang, "reminders_title") + "\n\n"
+    for r in reminders:
+        text += f"🆔 #{r.id}\n📝 {r.text}\n🗓 {format_when(r.remind_at, lang)}\n\n"
+    await message.answer(text, reply_markup=reminders_markup(reminders, lang))
 
 
 @dp.message(filters.CommandStart())
@@ -91,253 +105,154 @@ async def start(message: Message):
 
 
 @dp.message(F.text == "/broad", isAdmin(admins))
-async def boradcast(message: Message):
-    await message.answer(
-        f"Send your Message Admin {message.from_user.full_name}"
-    )
+async def broadcast(message: Message):
+    await message.answer(f"Send your Message Admin {message.from_user.full_name}")
     states.set_state(message.from_user.id, "BRD")
 
 
 @dp.message(IsState("BRD", states))
 async def start_broadcast(message: Message):
-    users = await get_users()
-
-    for u in users:
-        await message.copy_to(u.user_id)
-
+    for user in await get_users():
+        await message.copy_to(user.user_id)
     await message.answer("Broadcast is Finished")
 
 
-@dp.callback_query(F.data == "help")
-async def Help(call: CallbackQuery):
-    await call.bot.send_message(
-        chat_id=call.message.chat.id,
-        text=(
-            "⚪برای تنظیم کردن قرارها و یادآور ها فقط یک متن عادی برای من بفرست.\n\n"
-            "مثال فارسی: جلسه با آقای احمدی چهارشنبه ساعت 10✅\n"
-            "مثال انگلیسی: Remind me to call Sara tomorrow at 5 PM✅\n\n"
-            "می‌توانی جمله را طبیعی بنویسی؛ ربات در صورت نیاز از هوش مصنوعی برای فهم زمان استفاده می‌کند."
-        ),
-    )
+@dp.callback_query(F.data == "language")
+async def language_callback(call: CallbackQuery):
+    await call.message.answer("🌐 / زبان", reply_markup=language_markup())
     await call.answer()
 
 
-@dp.message(F.text == "تماس📞")
+@dp.message(F.text.in_({"🌐 تغییر زبان", "🌐 Change language"}))
+async def language_message(message: Message):
+    await message.answer("🌐 / زبان", reply_markup=language_markup())
+
+
+@dp.callback_query(F.data.startswith("lang:"))
+async def set_language(call: CallbackQuery):
+    language = call.data.split(":", 1)[1]
+    if language not in {"fa", "en"}:
+        await call.answer("Invalid language", show_alert=True)
+        return
+    await set_user_language(call.from_user.id, language)
+    await call.answer()
+    await call.message.answer(t(language, "language_changed") if language == "fa" else t("en", "language_changed_en"), reply_markup=menu(language))
+
+
+@dp.message(F.text.in_({"راهنما❓", "❓ Help"}))
+async def help_message(message: Message):
+    user = await get_user(message.from_user.id)
+    lang = lang_of(user)
+    await message.answer(t(lang, "help_text"), reply_markup=menu(lang))
+
+
+@dp.callback_query(F.data == "help")
+async def help_callback(call: CallbackQuery):
+    user = await get_user(call.from_user.id)
+    lang = lang_of(user)
+    await call.message.answer(t(lang, "help_text"), reply_markup=menu(lang))
+    await call.answer()
+
+
+@dp.message(F.text.in_({"تماس📞", "📞 Contact"}))
 async def contact_message(message: Message):
-    markup = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="Telegram", url="https://t.me/Lowkasra", style=ButtonStyle.PRIMARY)],
-            [InlineKeyboardButton(text="Linkedin", url="https://www.linkedin.com/in/kasrakarimian/", style=ButtonStyle.SUCCESS)],
-            [InlineKeyboardButton(text="GitHub", url="https://github.com/kasrakr")],
-            [InlineKeyboardButton(text="Buy Me a Coffee!", url="https://coffeebede.com/highkasra", style=ButtonStyle.DANGER)],
-        ]
-    )
-    await message.answer(
-        text="خوشحال میشم نظراتت رو ببینم:",
-        reply_markup=markup,
-    )
+    user = await get_user(message.from_user.id)
+    lang = lang_of(user)
+    markup = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Telegram", url="https://t.me/Lowkasra", style=ButtonStyle.PRIMARY)],
+        [InlineKeyboardButton(text="LinkedIn", url="https://www.linkedin.com/in/kasrakarimian/", style=ButtonStyle.SUCCESS)],
+        [InlineKeyboardButton(text="GitHub", url="https://github.com/kasrakr")],
+        [InlineKeyboardButton(text="Buy Me a Coffee!", url="https://coffeebede.com/highkasra", style=ButtonStyle.DANGER)],
+    ])
+    await message.answer(t(lang, "contact_text"), reply_markup=markup)
 
 
 @dp.callback_query(F.data == "contact")
-async def contact(call: CallbackQuery):
-    markup = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="Telegram", url="https://t.me/Lowkasra", style=ButtonStyle.PRIMARY)],
-            [InlineKeyboardButton(text="Linkedin", url="https://www.linkedin.com/in/kasrakarimian/", style=ButtonStyle.SUCCESS)],
-            [InlineKeyboardButton(text="GitHub", url="https://github.com/kasrakr")],
-            [InlineKeyboardButton(text="Buy Me a Coffee!", url="https://coffeebede.com/highkasra", style=ButtonStyle.DANGER)],
-        ]
-    )
-    await call.bot.send_message(
-        chat_id=call.message.chat.id,
-        text="خوشحال میشم نظراتت رو ببینم:",
-        reply_markup=markup,
-    )
+async def contact_callback(call: CallbackQuery):
+    user = await get_user(call.from_user.id)
+    lang = lang_of(user)
+    await call.message.answer(t(lang, "contact_text"))
     await call.answer()
 
 
-_PERSIAN_WEEKDAY_NAMES = ["دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه", "شنبه", "یکشنبه"]
-
-
-def _format_when(dt) -> str:
-    return f"{_PERSIAN_WEEKDAY_NAMES[dt.weekday()]} {dt.strftime('%Y-%m-%d')} ساعت {dt.strftime('%H:%M')}"
-
-
-def _reminders_markup(reminders) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(
-                    text=f"🗑 حذف #{reminder.id}",
-                    callback_data=f"delete_reminder:{reminder.id}",
-                )
-            ]
-            for reminder in reminders
-        ]
-    )
-
-
-async def _show_user_reminders(message: Message) -> None:
-    reminders = await get_user_reminders(message.from_user.id)
-
-    if not reminders:
-        await message.answer("⏱️ شما هیچ یادآوری‌ای ندارید.")
-        return
-
-    text = "📋 یادآوری‌های شما:\n\n"
-
-    for reminder in reminders:
-        text += (
-            f"🆔 #{reminder.id}\n"
-            f"📝 {reminder.text}\n"
-            f"🗓 {_format_when(reminder.remind_at)}\n\n"
-        )
-
-    await message.answer(text, reply_markup=_reminders_markup(reminders))
-
-
-@dp.message(F.text == "یادآوری های من⏱️")
+@dp.message(F.text.in_({"یادآوری های من⏱️", "⏱️ My Reminders"}))
 async def showreminders(message: Message):
-    await _show_user_reminders(message)
+    user = await get_user(message.from_user.id)
+    await show_user_reminders(message, lang_of(user))
 
 
 @dp.callback_query(F.data.startswith("delete_reminder:"))
 async def ask_delete_reminder(call: CallbackQuery):
+    user = await get_user(call.from_user.id)
+    lang = lang_of(user)
     try:
         reminder_id = int(call.data.split(":", 1)[1])
     except (ValueError, AttributeError):
-        await call.answer("یادآوری نامعتبر است.", show_alert=True)
+        await call.answer(t(lang, "invalid_reminder"), show_alert=True)
         return
-
-    confirm_markup = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(
-                    text="✅ بله، حذفش کن",
-                    callback_data=f"confirm_delete:{reminder_id}",
-                ),
-                InlineKeyboardButton(
-                    text="❌ لغو",
-                    callback_data="cancel_delete",
-                ),
-            ]
-        ]
-    )
-
-    await call.message.answer(
-        f"⚠️ مطمئنی می‌خواهی یادآوری #{reminder_id} حذف شود؟",
-        reply_markup=confirm_markup,
-    )
+    markup = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=t(lang, "yes_delete"), callback_data=f"confirm_delete:{reminder_id}"), InlineKeyboardButton(text=t(lang, "cancel"), callback_data="cancel_delete")]])
+    await call.message.answer(t(lang, "confirm_delete", id=reminder_id), reply_markup=markup)
     await call.answer()
 
 
 @dp.callback_query(F.data.startswith("confirm_delete:"))
 async def confirm_delete_reminder(call: CallbackQuery):
+    user = await get_user(call.from_user.id)
+    lang = lang_of(user)
     try:
         reminder_id = int(call.data.split(":", 1)[1])
     except (ValueError, AttributeError):
-        await call.answer("یادآوری نامعتبر است.", show_alert=True)
+        await call.answer(t(lang, "invalid_reminder"), show_alert=True)
         return
-
-    deleted = await delete_reminder(
-        reminder_id=reminder_id,
-        user_id=call.from_user.id,
-    )
-
-    if not deleted:
-        await call.answer("این یادآوری پیدا نشد یا متعلق به شما نیست.", show_alert=True)
+    if not await delete_reminder(reminder_id, call.from_user.id):
+        await call.answer(t(lang, "not_found"), show_alert=True)
         return
-
     await cancel_reminder(reminder_id)
-    await call.answer("یادآوری حذف شد ✅")
-
-    if call.message:
-        try:
-            await call.message.delete()
-        except Exception:
-            pass
-
+    await call.answer(t(lang, "deleted"))
+    try:
+        await call.message.delete()
+    except Exception:
+        pass
     reminders = await get_user_reminders(call.from_user.id)
     if reminders:
-        text = "📋 یادآوری‌های شما:\n\n"
-        for reminder in reminders:
-            text += (
-                f"🆔 #{reminder.id}\n"
-                f"📝 {reminder.text}\n"
-                f"🗓 {_format_when(reminder.remind_at)}\n\n"
-            )
-        await call.bot.send_message(
-            chat_id=call.message.chat.id,
-            text=text,
-            reply_markup=_reminders_markup(reminders),
-        )
+        text = t(lang, "reminders_title") + "\n\n" + "".join(f"🆔 #{r.id}\n📝 {r.text}\n🗓 {format_when(r.remind_at, lang)}\n\n" for r in reminders)
+        await call.bot.send_message(call.message.chat.id, text, reply_markup=reminders_markup(reminders, lang))
     else:
-        await call.bot.send_message(
-            chat_id=call.message.chat.id,
-            text="⏱️ شما هیچ یادآوری‌ای ندارید.",
-        )
+        await call.bot.send_message(call.message.chat.id, t(lang, "no_reminders"), reply_markup=menu(lang))
 
 
 @dp.callback_query(F.data == "cancel_delete")
 async def cancel_delete(call: CallbackQuery):
-    await call.answer("حذف لغو شد.")
-    if call.message:
-        try:
-            await call.message.delete()
-        except Exception:
-            pass
+    user = await get_user(call.from_user.id)
+    await call.answer(t(lang_of(user), "cancelled"))
+    try:
+        await call.message.delete()
+    except Exception:
+        pass
 
 
 @dp.message(F.text, ~F.text.startswith("/"))
 async def set_reminder(message: Message):
-    # Natural-language parsing: let the LLM understand the whole sentence first.
+    user = await get_user(message.from_user.id)
+    lang = lang_of(user)
     parsed = await parse_reminder_with_llm(message.text)
-
-    # Fast local fallback: keeps the bot usable if the LLM is unavailable.
     if parsed is None:
         parsed = parse_reminder(message.text)
-
     if parsed is None:
-        await message.answer(
-            "متوجه یادآوری شما نشدم 🙁\n"
-            "مثال فارسی: فردا حدود ساعت پنج به علی زنگ بزن\n"
-            "Example: Remind me to call Sara tomorrow around 5 PM"
-        )
+        await message.answer(t(lang, "parse_error"), reply_markup=menu(lang))
         return
-
     description, remind_at = parsed
-
-    reminder = await insert_reminder(
-        user_id=message.from_user.id,
-        chat_id=message.chat.id,
-        text=description,
-        remind_at=remind_at,
-    )
-
+    reminder = await insert_reminder(message.from_user.id, message.chat.id, description, remind_at)
     await schedule_reminder(message.bot, reminder)
-
-    await message.react(
-        reaction=[
-            ReactionTypeEmoji(emoji="❤️‍🔥")
-        ]
-    )
-    await message.answer(
-        f"✅ یادآوری تنظیم شد:\n"
-        f"📝 {description}\n"
-        f"🗓 {_format_when(remind_at)}"
-    )
+    await message.react(reaction=[ReactionTypeEmoji(emoji="❤️‍🔥")])
+    await message.answer(t(lang, "scheduled", description=description, when=format_when(remind_at, lang)), reply_markup=menu(lang))
 
 
 async def main():
     await create_table()
-
-    bot = Bot(
-        token=os.getenv("TELEGRAM_BOT_TOKEN"),
-    )
-
+    bot = Bot(token=os.getenv("TELEGRAM_BOT_TOKEN"))
     start_scheduler()
     await load_pending_reminders(bot)
-
     await dp.start_polling(bot)
 
 
