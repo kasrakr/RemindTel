@@ -14,14 +14,24 @@ from aiogram.types import (
 )
 from aiogram.enums import ParseMode, ButtonStyle
 
-from operations import create_table, get_users, insert_reminder,get_user_reminders
+from operations import (
+    create_table,
+    get_users,
+    insert_reminder,
+    get_user_reminders,
+    delete_reminder,
+)
 from middlewares import Requirements
 from filters import isAdmin
 from aiostep import MemoryStateStorage
 from aiostep.utils import IsState
 from persian_time import parse_reminder
-from scheduler import schedule_reminder, load_pending_reminders, start_scheduler
-
+from scheduler import (
+    schedule_reminder,
+    load_pending_reminders,
+    start_scheduler,
+    cancel_reminder,
+)
 
 
 states = MemoryStateStorage()
@@ -29,7 +39,6 @@ states = MemoryStateStorage()
 load_dotenv()
 
 dp = Dispatcher()
-
 dp.message.outer_middleware(Requirements())
 
 admins = [int(os.getenv("ADMINS"))]
@@ -54,7 +63,6 @@ async def start(message: Message):
                 ),
             ],
         ]
-
     )
     ph = FSInputFile(path="docs/2.png")
 
@@ -68,19 +76,17 @@ async def start(message: Message):
         parse_mode=ParseMode.HTML,
     )
     reply_markup = ReplyKeyboardMarkup(
-            keyboard=[
-                [
-                    KeyboardButton(text="یادآوری های من⏱️",style=ButtonStyle.PRIMARY)
-                ]
-            ],
-            resize_keyboard=True
-            )
+        keyboard=[
+            [
+                KeyboardButton(text="یادآوری های من⏱️", style=ButtonStyle.PRIMARY)
+            ]
+        ],
+        resize_keyboard=True
+    )
     await message.answer(
         text="Let's satrt Building:",
         reply_markup=reply_markup
     )
-
-
 
 
 @dp.message(F.text == "/broad", isAdmin(admins))
@@ -102,23 +108,24 @@ async def start_broadcast(message: Message):
 
 
 @dp.callback_query(F.data == "help")
-async def Help(call : CallbackQuery):
-
+async def Help(call: CallbackQuery):
     await call.bot.send_message(
         chat_id=call.message.chat.id,
-        text="For setting your meetings and important date just send it normally i will remind it to you normally:\n\n" 
-        "ex: جلسه با آقای احمدی چهارشنبه ساعت 10\n\n" \
+        text="For setting your meetings and important date just send it normally i will remind it to you normally:\n\n"
+        "ex: جلسه با آقای احمدی چهارشنبه ساعت 10\n\n"
         "Currrently only works with Persian language. English is comming on later updates.",
     )
+    await call.answer()
+
 
 @dp.callback_query(F.data == "contact")
-async def Help(call : CallbackQuery):
+async def contact(call: CallbackQuery):
     markup = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="Telegram", url="https://t.me/Lowkasra", style=ButtonStyle.PRIMARY)],
             [InlineKeyboardButton(text="Linkedin", url="https://www.linkedin.com/in/kasrakarimian/", style=ButtonStyle.SUCCESS)],
             [InlineKeyboardButton(text="GitHub", url="https://github.com/kasrakr")],
-            [InlineKeyboardButton(text="Buy Me a Coffee!", url="https://coffeebede.com/highkasra",style=ButtonStyle.DANGER)],
+            [InlineKeyboardButton(text="Buy Me a Coffee!", url="https://coffeebede.com/highkasra", style=ButtonStyle.DANGER)],
         ]
     )
     await call.bot.send_message(
@@ -126,7 +133,7 @@ async def Help(call : CallbackQuery):
         text="Glad to see Your comments:",
         reply_markup=markup
     )
-
+    await call.answer()
 
 
 _PERSIAN_WEEKDAY_NAMES = ["دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه", "شنبه", "یکشنبه"]
@@ -136,9 +143,21 @@ def _format_when(dt) -> str:
     return f"{_PERSIAN_WEEKDAY_NAMES[dt.weekday()]} {dt.strftime('%Y-%m-%d')} ساعت {dt.strftime('%H:%M')}"
 
 
+def _reminders_markup(reminders) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=f"🗑 حذف #{reminder.id}",
+                    callback_data=f"delete_reminder:{reminder.id}",
+                )
+            ]
+            for reminder in reminders
+        ]
+    )
 
-@dp.message(F.text == "یادآوری های من⏱️")
-async def showreminders(message: Message):
+
+async def _show_user_reminders(message: Message) -> None:
     reminders = await get_user_reminders(message.from_user.id)
 
     if not reminders:
@@ -149,11 +168,108 @@ async def showreminders(message: Message):
 
     for reminder in reminders:
         text += (
+            f"🆔 #{reminder.id}\n"
             f"📝 {reminder.text}\n"
             f"🗓 {_format_when(reminder.remind_at)}\n\n"
         )
 
-    await message.answer(text)
+    await message.answer(
+        text,
+        reply_markup=_reminders_markup(reminders),
+    )
+
+
+@dp.message(F.text == "یادآوری های من⏱️")
+async def showreminders(message: Message):
+    await _show_user_reminders(message)
+
+
+@dp.callback_query(F.data.startswith("delete_reminder:"))
+async def ask_delete_reminder(call: CallbackQuery):
+    try:
+        reminder_id = int(call.data.split(":", 1)[1])
+    except (ValueError, AttributeError):
+        await call.answer("یادآوری نامعتبر است.", show_alert=True)
+        return
+
+    confirm_markup = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="✅ بله، حذفش کن",
+                    callback_data=f"confirm_delete:{reminder_id}",
+                ),
+                InlineKeyboardButton(
+                    text="❌ لغو",
+                    callback_data="cancel_delete",
+                ),
+            ]
+        ]
+    )
+
+    await call.message.answer(
+        f"⚠️ مطمئنی می‌خواهی یادآوری #{reminder_id} حذف شود؟",
+        reply_markup=confirm_markup,
+    )
+    await call.answer()
+
+
+@dp.callback_query(F.data.startswith("confirm_delete:"))
+async def confirm_delete_reminder(call: CallbackQuery):
+    try:
+        reminder_id = int(call.data.split(":", 1)[1])
+    except (ValueError, AttributeError):
+        await call.answer("یادآوری نامعتبر است.", show_alert=True)
+        return
+
+    deleted = await delete_reminder(
+        reminder_id=reminder_id,
+        user_id=call.from_user.id,
+    )
+
+    if not deleted:
+        await call.answer("این یادآوری پیدا نشد یا متعلق به شما نیست.", show_alert=True)
+        return
+
+    await cancel_reminder(reminder_id)
+    await call.answer("یادآوری حذف شد ✅")
+
+    if call.message:
+        try:
+            await call.message.delete()
+        except Exception:
+            pass
+
+    if call.message:
+        reminders = await get_user_reminders(call.from_user.id)
+        if reminders:
+            text = "📋 یادآوری‌های شما:\n\n"
+            for reminder in reminders:
+                text += (
+                    f"🆔 #{reminder.id}\n"
+                    f"📝 {reminder.text}\n"
+                    f"🗓 {_format_when(reminder.remind_at)}\n\n"
+                )
+            await call.bot.send_message(
+                chat_id=call.message.chat.id,
+                text=text,
+                reply_markup=_reminders_markup(reminders),
+            )
+        else:
+            await call.bot.send_message(
+                chat_id=call.message.chat.id,
+                text="⏱️ شما هیچ یادآوری‌ای ندارید.",
+            )
+
+
+@dp.callback_query(F.data == "cancel_delete")
+async def cancel_delete(call: CallbackQuery):
+    await call.answer("حذف لغو شد.")
+    if call.message:
+        try:
+            await call.message.delete()
+        except Exception:
+            pass
 
 
 @dp.message(F.text, ~F.text.startswith("/"))
@@ -184,12 +300,6 @@ async def set_reminder(message: Message):
         f"📝 {description}\n"
         f"🗓 {_format_when(remind_at)}"
     )
-
-
-
-
-
-
 
 
 async def main():
