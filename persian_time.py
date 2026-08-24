@@ -71,6 +71,25 @@ _TIME_RE = re.compile(
     rf"\s*({_PERIOD_RE})?"
 )
 
+# Natural expressions that do not necessarily contain the word «ساعت».
+# Examples:
+#   یک ربع به سه       -> 02:45
+#   ربع به سه          -> 02:45
+#   نیم ساعت بعد از دو -> 02:30
+#   سه و نیم           -> 03:30
+#   حدود ساعت پنج      -> handled by _TIME_RE; «حدود» is left as description
+_TO_QUARTER_RE = re.compile(
+    rf"(?:یک\s+)?ربع\s+به\s+({_HOUR_RE})"
+)
+
+_HALF_AFTER_RE = re.compile(
+    rf"نیم\s+ساعت\s+بعد(?:\s+از)?\s+(?:ساعت\s+)?({_HOUR_RE})"
+)
+
+_HOUR_AND_HALF_RE = re.compile(
+    rf"(?:ساعت\s+)?({_HOUR_RE})\s+و\s+نیم"
+)
+
 _STANDALONE_PERIOD_RE = re.compile(_PERIOD_RE)
 
 _DEFAULT_HOUR_FOR_PERIOD = {
@@ -82,11 +101,26 @@ _DEFAULT_HOUR_FOR_PERIOD = {
     "شب": 21,
 }
 
-_FILLER_WORDS = ["برای", "در", "روز", "ساعت"]
+_FILLER_WORDS = [
+    "برای",
+    "در",
+    "روز",
+    "ساعت",
+    "حدود",
+    "تقریبا",
+    "تقریباً",
+]
 
 
 def _normalize(text: str) -> str:
     return text.translate(_PERSIAN_DIGITS)
+
+
+def _hour_from_token(token: str) -> int:
+    token = token.strip()
+    if token in _PERSIAN_HOUR_WORDS:
+        return _PERSIAN_HOUR_WORDS[token]
+    return int(token)
 
 
 def _apply_period(hour: int, period: str | None) -> int:
@@ -112,6 +146,11 @@ def _guess_hour_without_period(hour: int) -> int:
     if 1 <= hour <= 6:
         return hour + 12
     return hour
+
+
+def _natural_hour(hour: int) -> int:
+    """Apply the bot's existing AM/PM guess to a natural-language hour."""
+    return _guess_hour_without_period(hour)
 
 
 def _strip_spans(text: str, spans: list[tuple[int, int]]) -> str:
@@ -169,26 +208,54 @@ def parse_reminder(
     hour: int | None = None
     minute = 0
 
-    m = _TIME_RE.search(working)
+    # 1) «یک ربع به سه» / «ربع به سه»
+    m = _TO_QUARTER_RE.search(working)
     if m:
-        hour_token = m.group(2)
-        hour = _PERSIAN_HOUR_WORDS.get(hour_token, int(hour_token)) if hour_token in _PERSIAN_HOUR_WORDS else int(hour_token)
-
-        if m.group(3):
-            minute = int(m.group(3))
-        elif m.group(5) == "نیم":
-            minute = 30
-        elif m.group(5) == "ربع":
-            minute = 15
-
-        period = m.group(6) or m.group(1)
-        if period:
-            hour = _apply_period(hour, period)
-        else:
-            hour = _guess_hour_without_period(hour)
-
+        base_hour = _natural_hour(_hour_from_token(m.group(1)))
+        total_minutes = base_hour * 60 - 15
+        hour, minute = divmod(total_minutes, 60)
         spans.append((m.start(), m.end()))
-    else:
+
+    # 2) «نیم ساعت بعد از دو» / «نیم ساعت بعد دو»
+    if hour is None:
+        m = _HALF_AFTER_RE.search(working)
+        if m:
+            base_hour = _natural_hour(_hour_from_token(m.group(1)))
+            total_minutes = base_hour * 60 + 30
+            hour, minute = divmod(total_minutes, 60)
+            spans.append((m.start(), m.end()))
+
+    # 3) «سه و نیم» / «ساعت سه و نیم»
+    if hour is None:
+        m = _HOUR_AND_HALF_RE.search(working)
+        if m:
+            hour = _natural_hour(_hour_from_token(m.group(1)))
+            minute = 30
+            spans.append((m.start(), m.end()))
+
+    # 4) Existing explicit «ساعت ...» parser.
+    if hour is None:
+        m = _TIME_RE.search(working)
+        if m:
+            hour = _hour_from_token(m.group(2))
+
+            if m.group(3):
+                minute = int(m.group(3))
+            elif m.group(5) == "نیم":
+                minute = 30
+            elif m.group(5) == "ربع":
+                minute = 15
+
+            period = m.group(6) or m.group(1)
+            if period:
+                hour = _apply_period(hour, period)
+            else:
+                hour = _guess_hour_without_period(hour)
+
+            spans.append((m.start(), m.end()))
+
+    # 5) A standalone period such as «فردا شب».
+    if hour is None:
         pm = _STANDALONE_PERIOD_RE.search(working)
         if pm:
             period = pm.group(0)
