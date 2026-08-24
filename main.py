@@ -14,11 +14,13 @@ from aiogram.types import (
 )
 from aiogram.enums import ParseMode, ButtonStyle
 
-from operations import create_table, get_users
+from operations import create_table, get_users, insert_reminder
 from middlewares import Requirements
 from filters import isAdmin, Photo
 from aiostep import MemoryStateStorage
 from aiostep.utils import IsState
+from persian_time import parse_reminder
+from scheduler import schedule_reminder, load_pending_reminders, start_scheduler
 
 
 
@@ -90,34 +92,63 @@ async def Help(call : CallbackQuery):
 
     await call.bot.send_message(
         chat_id=call.message.chat.id,
-        text="For setting your meetings and important date just send it normally i will remind it to you normally:\n" 
-        "ex: جلسه با آقای احمدی چهارشنبه ساعت 10",
+        text="For setting your meetings and important date just send it normally i will remind it to you normally:\n\n" 
+        "ex: جلسه با آقای احمدی چهارشنبه ساعت 10\n\n" \
+        "Currrently only works with Persian language. English is comming on later updates.",
     )
 
-
-@dp.message(F.text == "First Button")
-async def handleEverything(message: Message):
-    await message.reply(text=message.text)
-
-
-@dp.callback_query(F.data == "btn1")
-async def callback(call: CallbackQuery):
-    await call.answer(
-        text="You clicked on First Button!",
-        show_alert=True,
+@dp.callback_query(F.data == "contact")
+async def Help(call : CallbackQuery):
+    markup = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="Telegram", url="https://t.me/Lowkasra", style=ButtonStyle.PRIMARY)],
+            [InlineKeyboardButton(text="Linkedin", url="https://www.linkedin.com/in/kasrakarimian/", style=ButtonStyle.SUCCESS)],
+            [InlineKeyboardButton(text="GitHub", url="https://github.com/kasrakr")],
+        ]
     )
-
     await call.bot.send_message(
         chat_id=call.message.chat.id,
-        text="Successfully Clicked!",
+        text="Glad to see You comments:",
+        reply_markup=markup
     )
 
 
-@dp.message(Photo())
-async def get_photo(message: Message):
-    await message.bot.download(
-        message.photo[-1],
-        "usersimages/image.jpg",
+
+_PERSIAN_WEEKDAY_NAMES = ["دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه", "شنبه", "یکشنبه"]
+
+
+def _format_when(dt) -> str:
+    return f"{_PERSIAN_WEEKDAY_NAMES[dt.weekday()]} {dt.strftime('%Y-%m-%d')} ساعت {dt.strftime('%H:%M')}"
+
+
+
+@dp.message(F.text, ~F.text.startswith("/"))
+async def set_reminder(message: Message):
+    parsed = parse_reminder(message.text)
+
+    if parsed is None:
+        await message.answer(
+            "متوجه روز و ساعت پیام شما نشدم 🙁\n"
+            "لطفاً یک روز هفته یا «امروز/فردا» و یک ساعت مشخص کنید.\n"
+            "مثال: جلسه با آقای احمدی چهارشنبه ساعت 10"
+        )
+        return
+
+    description, remind_at = parsed
+
+    reminder = await insert_reminder(
+        user_id=message.from_user.id,
+        chat_id=message.chat.id,
+        text=description,
+        remind_at=remind_at,
+    )
+
+    await schedule_reminder(message.bot, reminder)
+
+    await message.answer(
+        f"✅ یادآوری تنظیم شد:\n"
+        f"📝 {description}\n"
+        f"🗓 {_format_when(remind_at)}"
     )
 
 
@@ -127,6 +158,9 @@ async def main():
     bot = Bot(
         token=os.getenv("TELEGRAM_BOT_TOKEN"),
     )
+
+    start_scheduler()
+    await load_pending_reminders(bot)
 
     await dp.start_polling(bot)
 

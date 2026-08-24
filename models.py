@@ -15,3 +15,15 @@ class User(Base):
     full_name : Mapped[str] = mapped_column(VARCHAR(128), nullable=True)
     join_date : Mapped[datetime] = mapped_column(default=datetime.now)
     is_blocked : Mapped[bool] = mapped_column(default=False)
+
+
+class Reminder(Base):
+    __tablename__ = 'reminders'
+
+    id : Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    user_id : Mapped[int] = mapped_column(BIGINT())
+    chat_id : Mapped[int] = mapped_column(BIGINT())
+    text : Mapped[str] = mapped_column(VARCHAR(512))
+    remind_at : Mapped[datetime]
+    created_at : Mapped[datetime] = mapped_column(default=datetime.now)
+    is_sent : Mapped[bool] = mapped_column(default=False)
