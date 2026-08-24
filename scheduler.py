@@ -25,8 +25,15 @@ async def schedule_reminder(bot: Bot, reminder) -> None:
         run_date=reminder.remind_at,
         id=f"reminder-{reminder.id}",
         replace_existing=True,
-        misfire_grace_time=3600,  
+        misfire_grace_time=3600,
     )
+
+
+async def cancel_reminder(reminder_id: int) -> None:
+    job_id = f"reminder-{reminder_id}"
+    job = scheduler.get_job(job_id)
+    if job is not None:
+        scheduler.remove_job(job_id)
 
 
 async def load_pending_reminders(bot: Bot) -> None:
