@@ -46,8 +46,27 @@ _DEFAULT_HOUR_FOR_WORD = {
 _PERIOD_WORDS = ["بعدازظهر", "بعد از ظهر", "صبح", "ظهر", "عصر", "شب"]
 _PERIOD_RE = "|".join(sorted(_PERIOD_WORDS, key=lambda w: -len(w)))
 
+_PERSIAN_HOUR_WORDS: dict[str, int] = {
+    "یک": 1,
+    "دو": 2,
+    "سه": 3,
+    "چهار": 4,
+    "پنج": 5,
+    "شش": 6,
+    "هفت": 7,
+    "هشت": 8,
+    "نه": 9,
+    "ده": 10,
+    "یازده": 11,
+    "دوازده": 12,
+}
+_PERSIAN_HOUR_RE = "|".join(
+    sorted(_PERSIAN_HOUR_WORDS, key=lambda w: -len(w))
+)
+_HOUR_RE = rf"(?:\d{{1,2}}|{_PERSIAN_HOUR_RE})"
+
 _TIME_RE = re.compile(
-    rf"(?:({_PERIOD_RE})\s+)?ساعت\s*(\d{{1,2}})(?::(\d{{2}}))?"
+    rf"(?:({_PERIOD_RE})\s+)?ساعت\s*({_HOUR_RE})(?::(\d{{2}}))?"
     rf"(?:\s*(و)?\s*(نیم|ربع))?"
     rf"\s*({_PERIOD_RE})?"
 )
@@ -86,14 +105,13 @@ def _apply_period(hour: int, period: str | None) -> int:
 
 
 def _guess_hour_without_period(hour: int) -> int:
-
     if hour == 0 or hour == 12:
         return hour if hour != 0 else 0
     if 7 <= hour <= 11:
         return hour
     if 1 <= hour <= 6:
         return hour + 12
-    return hour  
+    return hour
 
 
 def _strip_spans(text: str, spans: list[tuple[int, int]]) -> str:
@@ -112,7 +130,6 @@ def _strip_spans(text: str, spans: list[tuple[int, int]]) -> str:
 
     cleaned = re.sub(r"\s+", " ", cleaned).strip(" \t\n\r،,.:؛-")
     return cleaned
-
 
 
 
@@ -154,7 +171,9 @@ def parse_reminder(
 
     m = _TIME_RE.search(working)
     if m:
-        hour = int(m.group(2))
+        hour_token = m.group(2)
+        hour = _PERSIAN_HOUR_WORDS.get(hour_token, int(hour_token)) if hour_token in _PERSIAN_HOUR_WORDS else int(hour_token)
+
         if m.group(3):
             minute = int(m.group(3))
         elif m.group(5) == "نیم":
@@ -170,7 +189,6 @@ def parse_reminder(
 
         spans.append((m.start(), m.end()))
     else:
-   
         pm = _STANDALONE_PERIOD_RE.search(working)
         if pm:
             period = pm.group(0)
@@ -178,7 +196,7 @@ def parse_reminder(
             spans.append((pm.start(), pm.end()))
 
     if target_date is None and hour is None:
-        return None  
+        return None
 
     if target_date is None:
         target_date = now.date()
@@ -190,7 +208,6 @@ def parse_reminder(
         hour=hour, minute=minute
     )
 
-   
     if remind_at <= now and target_date == now.date():
         if is_weekday_match:
             remind_at += timedelta(days=7)
