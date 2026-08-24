@@ -51,14 +51,14 @@ async def start(message: Message):
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text="Help",
+                    text="راهنما❓",
                     style=ButtonStyle.PRIMARY,
                     callback_data="help"
                 )
             ],
             [
                 InlineKeyboardButton(
-                    text="Contact Me!",
+                    text="تماس📞",
                     style=ButtonStyle.SUCCESS,
                     callback_data="contact"
                 ),
@@ -70,8 +70,8 @@ async def start(message: Message):
     await message.answer_photo(
         photo=ph,
         caption=(
-            f"Welcome to RemindTel Bot Dear "
-            f"{html.bold(message.from_user.first_name)}!"
+            f"به ربات RrmindTel خوش آمدید "
+            f"{html.bold(message.from_user.first_name)} عزیز!"
         ),
         reply_markup=markup,
         parse_mode=ParseMode.HTML,
@@ -87,7 +87,7 @@ async def start(message: Message):
         resize_keyboard=True
     )
     await message.answer(
-        text="Let's satrt Building:",
+        text='',
         reply_markup=reply_markup
     )
 
@@ -114,8 +114,8 @@ async def start_broadcast(message: Message):
 async def Help(call: CallbackQuery):
     await call.bot.send_message(
         chat_id=call.message.chat.id,
-        text="For setting your meetings and important date just send it normally i will remind it to you normally:\n\n"
-        "ex: جلسه با آقای احمدی چهارشنبه ساعت 10\n\n"
+        text="⚪برای تنظیم کردن قرارها و یادآور ها فقط یک متن عادی با ساعت و  روز برام بفرست.\n\n"
+        "مثال: جلسه با آقای احمدی چهارشنبه ساعت 10✅\n\n"
         "Currrently only works with Persian language. English is comming on later updates.",
     )
     await call.answer()
@@ -132,7 +132,7 @@ async def contact_message(message:Message):
         ]
     )
     await message.answer(
-        text="Glad to see Your comments:",
+        text="خوشحال میشم نظراتت رو ببینم:",
         reply_markup=markup
     )
 
@@ -150,7 +150,7 @@ async def contact(call: CallbackQuery):
     )
     await call.bot.send_message(
         chat_id=call.message.chat.id,
-        text="Glad to see Your comments:",
+        text="خوشحال میشم نظراتت رو ببینم:",
         reply_markup=markup
     )
     await call.answer()
