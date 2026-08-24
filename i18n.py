@@ -13,10 +13,10 @@ TEXTS = {
         "help_text": (
             "⚪ برای تنظیم یادآوری، درخواستت را طبیعی بنویس.\n\n"
             "مثال‌ها:\n"
-            "• فردا ساعت ۵ به علی زنگ بزن\n"
-            "• روز قبل عید قربان ساعت ۹ می‌خوام برم فوتبال\n"
-            "• یک ربع به سه یادم بنداز با احمد تماس بگیرم\n"
-            "• نیم ساعت بعد از دو یادم بنداز پروژه رو commit کنم"
+            "• فردا ساعت ۵ به متین زنگ بزن\n"
+            "• روز قبل کریسمس ساعت ۹ می‌خوام برم فوتبال\n"
+            "• یک ربع به سه یادم بنداز با مسعود تماس بگیرم\n"
+            "• ساعت دو و نیم یادم بنداز پروژه رو commit کنم"
         ),
         "contact_text": "خوشحال می‌شم نظراتت رو ببینم:",
         "no_reminders": "⏱️ شما هیچ یادآوری‌ای ندارید.",
@@ -31,7 +31,7 @@ TEXTS = {
         "not_found": "این یادآوری پیدا نشد یا متعلق به شما نیست.",
         "parse_error": (
             "متوجه یادآوری شما نشدم 🙁\n"
-            "مثال: فردا حدود ساعت پنج به علی زنگ بزن"
+            "مثال: فردا حدود ساعت پنج به متین زنگ بزن"
         ),
         "scheduled": "✅ یادآوری تنظیم شد:\n📝 {description}\n🗓 {when}",
         "weekday": ["دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه", "شنبه", "یکشنبه"],
@@ -50,9 +50,9 @@ TEXTS = {
         "help_text": (
             "⚪ Set reminders by writing naturally.\n\n"
             "Examples:\n"
-            "• Remind me to call Ali tomorrow at 5 PM\n"
-            "• I want to play football at 9 AM the day before Eid al-Adha\n"
-            "• Remind me at a quarter to three to call Ahmad\n"
+            "• Remind me to call Matin tomorrow at 5 PM\n"
+            "• I want to play football at 9 AM the day before Christmas\n"
+            "• Remind me at a quarter to three to call Masoud\n"
             "• Remind me half an hour after two to commit the project"
         ),
         "contact_text": "I’d love to hear your feedback:",

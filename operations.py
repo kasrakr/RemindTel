@@ -12,7 +12,7 @@ async def create_table() -> None:
     async with _engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-        # SQLite does not alter existing tables when create_all() sees a new column.
+       
         columns = await conn.execute(text("PRAGMA table_info(users)"))
         column_names = {row[1] for row in columns.fetchall()}
         if "language" not in column_names:
@@ -98,7 +98,7 @@ async def mark_reminder_sent(reminder_id: int) -> None:
 async def get_user_reminders(user_id: int) -> list[Reminder]:
     query = select(Reminder).where(
         Reminder.user_id == user_id,
-        Reminder.is_sent == False,  # noqa: E712
+        Reminder.is_sent == False,  
     )
     async with Session() as session:
         reminders = await session.scalars(query)

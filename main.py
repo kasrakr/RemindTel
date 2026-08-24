@@ -62,46 +62,15 @@ async def show_user_reminders(message: Message, lang: str):
 
 @dp.message(filters.CommandStart())
 async def start(message: Message):
-    markup = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(
-                    text="راهنما❓",
-                    style=ButtonStyle.PRIMARY,
-                    callback_data="help",
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    text="تماس📞",
-                    style=ButtonStyle.SUCCESS,
-                    callback_data="contact",
-                ),
-            ],
-        ]
-    )
-    ph = FSInputFile(path="docs/2.png")
-
-    await message.answer_photo(
-        photo=ph,
-        caption=(
-            f"به ربات RemindTel خوش آمدید "
-            f"{html.bold(message.from_user.first_name)} عزیز!"
-        ),
-        reply_markup=markup,
-        parse_mode=ParseMode.HTML,
-    )
-    reply_markup = ReplyKeyboardMarkup(
-        keyboard=[
-            [
-                KeyboardButton(text="/start", style=ButtonStyle.SUCCESS),
-                KeyboardButton(text="یادآوری های من⏱️", style=ButtonStyle.PRIMARY),
-                KeyboardButton(text="تماس📞", style=ButtonStyle.DANGER),
-            ]
-        ],
-        resize_keyboard=True,
-    )
-    await message.answer(text="گزینه مورد نظر را انتخاب کنید یا فقط بگویید:", reply_markup=reply_markup)
+    user = await get_user(message.from_user.id)
+    lang = lang_of(user)
+    markup = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=t(lang, "help"), callback_data="help")],
+        [InlineKeyboardButton(text=t(lang, "language_button"), callback_data="language")],
+        [InlineKeyboardButton(text=t(lang, "contact"), callback_data="contact")],
+    ])
+    await message.answer_photo(FSInputFile(path="docs/2.png"), caption=t(lang, "welcome", name=html.bold(message.from_user.first_name)), reply_markup=markup, parse_mode=ParseMode.HTML)
+    await message.answer(t(lang, "menu_ready"), reply_markup=menu(lang))
 
 
 @dp.message(F.text == "/broad", isAdmin(admins))
