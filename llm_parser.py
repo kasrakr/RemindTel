@@ -82,6 +82,7 @@ async def parse_reminder_with_llm(
         now = datetime.now()
 
     client = AsyncOpenAI(
+        base_url='https://api.gapgpt.app/v1',
         api_key=api_key,
     )
     model = os.getenv("OPENAI_MODEL", "gpt-5.6-luna")

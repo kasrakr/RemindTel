@@ -87,7 +87,7 @@ async def start(message: Message):
         ],
         resize_keyboard=True,
     )
-    await message.answer(text="", reply_markup=reply_markup)
+    await message.answer(text="گزینه مورد نظر را انتخاب کنید یا فقط بگویید:", reply_markup=reply_markup)
 
 
 @dp.message(F.text == "/broad", isAdmin(admins))
