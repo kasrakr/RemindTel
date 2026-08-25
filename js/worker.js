@@ -54,7 +54,7 @@
 const TEXTS = {
   fa: {
     language_name: 'فارسی',
-    anguage_button: '🌐 تغییر زبان',
+    language_button: '🌐 تغییر زبان',
     my_reminders: '⏱️ یادآوری های من',
     contact: '📞 تماس',
     help: '❕ راهنما',
@@ -66,9 +66,9 @@ const TEXTS = {
     help_text:
       '⚪ برای تنظیم یادآوری، درخواستت را طبیعی بنویس.\n\n' +
       'مثال‌ها:\n' +
-      '• فردا ساعت ۵ به متین زنگ بزن\n' +
+      '• فردا ساعت ۵ به بابا زنگ بزن\n' +
       '• روز قبل کریسمس ساعت ۹ می‌خوام برم فوتبال\n' +
-      '• یک ربع به سه یادم بنداز با مسعود تماس بگیرم\n' +
+      '• یک ربع به سه یادم بنداز با کسرا تماس بگیرم\n' +
       '• ساعت دو و نیم یادم بنداز پروژه رو commit کنم',
     contact_text: 'خوشحال می‌شم نظراتت رو ببینم:',
     no_reminders: '⏱️ شما هیچ یادآوری‌ای ندارید.',
@@ -81,7 +81,7 @@ const TEXTS = {
     cancelled: 'حذف لغو شد.',
     invalid_reminder: 'یادآوری نامعتبر است.',
     not_found: 'این یادآوری پیدا نشد یا متعلق به شما نیست.',
-    parse_error: 'متوجه یادآوری شما نشدم 🙁\nمثال: فردا حدود ساعت پنج به متین زنگ بزن',
+    parse_error: 'متوجه یادآوری شما نشدم 🙁\nمثال: فردا حدود ساعت پنج به بابا زنگ بزن',
     scheduled: '✅ یادآوری تنظیم شد:\n📝 {description}\n🗓 {when}',
     weekday: ['دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه', 'شنبه', 'یکشنبه'],
   },
@@ -99,9 +99,9 @@ const TEXTS = {
     help_text:
       '⚪ Set reminders by writing naturally.\n\n' +
       'Examples:\n' +
-      '• Remind me to call Matin tomorrow at 5 PM\n' +
+      '• Remind me to call Dad tomorrow at 5 PM\n' +
       '• I want to play football at 9 AM the day before Christmas\n' +
-      '• Remind me at a quarter to three to call Masoud\n' +
+      '• Remind me at a quarter to three to call Kasra\n' +
       '• Remind me half an hour after two to commit the project',
     contact_text: 'I’d love to hear your feedback:',
     no_reminders: '⏱️ You have no reminders.',
