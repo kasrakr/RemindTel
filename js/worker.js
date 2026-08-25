@@ -54,10 +54,10 @@
 const TEXTS = {
   fa: {
     language_name: 'فارسی',
-    language_button: '🌐تغییر زبان',
-    my_reminders: 'یادآوری های من⏱️',
-    contact: 'تماس📞',
-    help: 'راهنما❕',
+    anguage_button: '🌐 تغییر زبان',
+    my_reminders: '⏱️ یادآوری های من',
+    contact: '📞 تماس',
+    help: '❕ راهنما',
     welcome: 'به ربات RemindTel خوش آمدید {name} عزیز!',
     menu_ready: 'از منوی زیر استفاده کن یا درخواستت را به صورت طبیعی بنویس.',
     choose_language: '🌐 زبان ربات را انتخاب کنید:',
@@ -87,10 +87,10 @@ const TEXTS = {
   },
   en: {
     language_name: 'English',
-    language_button: '🌐Change language',
-    my_reminders: '⏱️My Reminders',
-    contact: '📞Contact',
-    help: '⏱️Help',
+    language_button: '🌐 Change language',
+    my_reminders: '⏱️ My Reminders',
+    contact: '📞 Contact',
+    help: '❕ Help',
     welcome: 'Welcome to RemindTel, {name}!',
     menu_ready: 'Use the menu below or write your reminder naturally.',
     choose_language: '🌐 Choose your bot language:',
@@ -717,8 +717,26 @@ async function tg(env, method, params) {
 function menu(lang) {
   return {
     keyboard: [
-      [{ text: t(lang, 'my_reminders') }, { text: t(lang, 'help'), style: 'primary' }],
-      [{ text: t(lang, 'contact') }, { text: t(lang, 'language_button'), style: 'danger' }],
+      [
+        {
+          text: t(lang, 'my_reminders'),
+          style: 'success',
+        },
+        {
+          text: t(lang, 'help'),
+          style: 'primary',
+        },
+      ],
+      [
+        {
+          text: t(lang, 'contact'),
+          style: 'danger',
+        },
+        {
+          text: t(lang, 'language_button'),
+          style: 'primary',
+        },
+      ],
     ],
     resize_keyboard: true,
   };
@@ -743,10 +761,7 @@ function contactMarkup() {
   };
 }
 
-const CHANGE_LANG_TEXTS = new Set(['🌐 تغییر زبان', '🌐 Change language']);
-const HELP_TEXTS = new Set(['راهنما❕',  'Help❕']);
-const CONTACT_TEXTS = new Set(['تماس📞', 'Contact📞']);
-const REMINDERS_TEXTS = new Set(['یادآوری های من⏱️', 'My Reminders⏱️']);
+
 
 // ============================================================================
 // Handlers (ported from main.py)
@@ -856,25 +871,42 @@ async function handleMessage(env, message) {
     return;
   }
 
-  if (text && CHANGE_LANG_TEXTS.has(text)) {
-    await tg(env, 'sendMessage', { chat_id: message.chat.id, text: '🌐 / زبان', reply_markup: languageMarkup() });
-    return;
-  }
+if (text === t(lang, 'language_button')) {
+  await tg(env, 'sendMessage', {
+    chat_id: message.chat.id,
+    text: t(lang, 'choose_language'),
+    reply_markup: languageMarkup(),
+  });
+  return;
+}
 
-  if (text && HELP_TEXTS.has(text)) {
-    await tg(env, 'sendMessage', { chat_id: message.chat.id, text: t(lang, 'help_text'), reply_markup: menu(lang) });
-    return;
-  }
+if (text === t(lang, 'help')) {
+  await tg(env, 'sendMessage', {
+    chat_id: message.chat.id,
+    text: t(lang, 'help_text'),
+    reply_markup: menu(lang),
+  });
+  return;
+}
 
-  if (text && CONTACT_TEXTS.has(text)) {
-    await tg(env, 'sendMessage', { chat_id: message.chat.id, text: t(lang, 'contact_text'), reply_markup: contactMarkup() });
-    return;
-  }
+if (text === t(lang, 'contact')) {
+  await tg(env, 'sendMessage', {
+    chat_id: message.chat.id,
+    text: t(lang, 'contact_text'),
+    reply_markup: contactMarkup(),
+  });
+  return;
+}
 
-  if (text && REMINDERS_TEXTS.has(text)) {
-    await showUserReminders(env, message.chat.id, message.from.id, lang);
-    return;
-  }
+if (text === t(lang, 'my_reminders')) {
+  await showUserReminders(
+    env,
+    message.chat.id,
+    message.from.id,
+    lang
+  );
+  return;
+}
 
   if (text && !text.startsWith('/')) {
     await handleSetReminder(env, message, user);
@@ -893,10 +925,18 @@ async function handleCallbackQuery(env, cb) {
   const chatId = cb.message.chat.id;
 
   if (data === 'language') {
-    await tg(env, 'sendMessage', { chat_id: chatId, text: '🌐 / زبان', reply_markup: languageMarkup() });
-    await tg(env, 'answerCallbackQuery', { callback_query_id: cb.id });
-    return;
-  }
+    await tg(env, 'sendMessage', {
+      chat_id: chatId,
+      text: t(lang, 'choose_language'),
+      reply_markup: languageMarkup(),
+    });
+
+    await tg(env, 'answerCallbackQuery', {
+      callback_query_id: cb.id,
+    });
+
+  return;
+}
 
   if (data.startsWith('lang:')) {
     const language = data.split(':')[1];
