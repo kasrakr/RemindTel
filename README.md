@@ -4,7 +4,7 @@
 
 # ⏰ RemindTel
 
-[![Typing SVG](https://readme-typing-svg.demolab.com/?font=Fira+Code&weight=600&size=30&duration=3000&pause=900&color=2563EB&center=true&vCenter=true&width=820&height=60&lines=Smart+Telegram+Reminder+Bot+%E2%8F%B0;Natural-language+reminders+in+Persian+%26+English+%F0%9F%8C%90;Powered+by+Cloudflare+Workers+%E2%98%81%EF%B8%8F)](https://github.com/kasrakr/RemindTel)
+[![Typing SVG](https://readme-typing-svg.demolab.com/?font=Fira+Code&weight=600&size=30&duration=3000&pause=900&color=2563EB&center=true&vCenter=true&width=870&height=60&lines=Smart+Telegram+Reminder+Bot+%E2%8F%B0;Simple-language+reminders+in+Persian+%26+English+%F0%9F%8C%90;Powered+by+Cloudflare+Workers+%E2%98%81%EF%B8%8F)](https://github.com/kasrakr/RemindTel)
 
 A serverless Telegram reminder bot that understands natural-language scheduling in **Persian and English**, stores reminders in **Cloudflare D1**, and delivers them through **Cloudflare Workers + Cron Triggers**.
 
