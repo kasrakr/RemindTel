@@ -1,0 +1,15 @@
+{
+  "name": "remindtel-cloudflare-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "grammy": "latest"
+  },
+  "devDependencies": {
+    "wrangler": "latest"
+  }
+}
