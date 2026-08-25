@@ -1,6 +1,5 @@
 import asyncio
 import os
-import re
 
 from dotenv import load_dotenv
 from aiogram import Dispatcher, filters, Bot, F, html
@@ -66,9 +65,9 @@ async def start(message: Message):
     user = await get_user(message.from_user.id)
     lang = lang_of(user)
     markup = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=t(lang, "help"), callback_data="help")],
-        [InlineKeyboardButton(text=t(lang, "language_button"), callback_data="language")],
-        [InlineKeyboardButton(text=t(lang, "contact"), callback_data="contact")],
+        [InlineKeyboardButton(text=t(lang, "help"), callback_data="help",style=ButtonStyle.PRIMARY)],
+        [InlineKeyboardButton(text=t(lang, "language_button"), callback_data="language", style=ButtonStyle.SUCCESS)],
+        [InlineKeyboardButton(text=t(lang, "contact"), callback_data="contact", style=ButtonStyle.DANGER)],
     ])
     await message.answer_photo(FSInputFile(path="docs/2.png"), caption=t(lang, "welcome", name=html.bold(message.from_user.first_name)), reply_markup=markup, parse_mode=ParseMode.HTML)
     await message.answer(t(lang, "menu_ready"), reply_markup=menu(lang))
@@ -202,20 +201,11 @@ async def cancel_delete(call: CallbackQuery):
 
 
 
-_NEEDS_LLM_RE = re.compile(
-    r"عید|رمضان|نوروز|یلدا|چهارشنبه[‌ ]?سوری|تاسوعا|عاشورا|"
-    r"امتحان|تولد|سالگرد|مونده\s+به|مانده\s+به|قبل|بعد(?!\s*از\s*ظهر|ازظهر)"
-)
+
 
 
 @dp.message(F.text, ~F.text.startswith("/"))
 async def set_reminder(message: Message):
-    if _NEEDS_LLM_RE.search(message.text):
-        parsed = await parse_reminder_with_llm(message.text)
-    else:
-        parsed = parse_reminder(message.text)
-        if parsed is None:
-            parsed = await parse_reminder_with_llm(message.text)
     user = await get_user(message.from_user.id)
     lang = lang_of(user)
     parsed = parse_reminder(message.text)
