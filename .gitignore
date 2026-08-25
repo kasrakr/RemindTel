@@ -1,5 +1,6 @@
 .env
-usersimages/
+js/.wrangler
+js/wrangler.toml
 aiogram.db
 env/
 __pycache__/
