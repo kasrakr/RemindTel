@@ -821,6 +821,23 @@ async function handleBroadcastMessage(env, message) {
 
 async function handleSetReminder(env, message, user) {
   const lang = user ? user.language : 'en';
+
+  // --- ADD CHARACTER LIMIT CHECK HERE ---
+ const charCount = [...(message.text || '')].length;
+
+if (charCount > 700) {
+  const text = lang === 'fa'
+    ? '⚠️ متن یادآوری نباید بیشتر از ۷۰۰ کاراکتر باشد.'
+    : '⚠️ Your reminder message cannot exceed 700 characters.';
+
+  await tg(env, 'sendMessage', {
+    chat_id: message.chat.id,
+    text,
+    reply_markup: menu(lang),
+  });
+  return;
+}
+
   const now = nowParts(env);
   let parsed = parseReminderPersian(message.text, now);
   if (!parsed) parsed = await parseReminderWithLLM(message.text, now, env);
@@ -907,6 +924,23 @@ if (text === t(lang, 'my_reminders')) {
   );
   return;
 }
+  // --- ADD RATE LIMIT CHECK HERE ---
+    if (env.BOT_RATE_LIMITER) {
+    const { success } = await env.BOT_RATE_LIMITER.limit({
+      key: `reminder:${message.from.id}`,
+    });
+
+    if (!success) {
+      await tg(env, 'sendMessage', {
+        chat_id: message.chat.id,
+        text: lang === 'fa'
+          ? '⚠️ درخواست‌هایت خیلی سریع ارسال می‌شوند. لطفاً کمی صبر کن.'
+          : '⚠️ You are sending reminders too quickly. Please wait a minute.',
+        reply_markup: menu(lang),
+      });
+      return;
+    }
+  }
 
   if (text && !text.startsWith('/')) {
     await handleSetReminder(env, message, user);
