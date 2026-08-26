@@ -1,55 +1,6 @@
-/**
- * RemindTel — Telegram reminder bot
- * ------------------------------------------------------------------
- * Single-file Cloudflare Worker port of https://github.com/kasrakr/RemindTel
- *
- * Original stack -> Worker equivalent:
- *   aiogram long-polling      -> Telegram webhook (POST /webhook)
- *   SQLAlchemy + SQLite       -> D1 (binding: DB)
- *   APScheduler (in-memory)   -> Cron Trigger (`scheduled` handler polls D1
- *                                every minute for due reminders)
- *   aiostep MemoryStateStorage-> a `bot_state` table in D1 (in-memory state
- *                                doesn't survive across Worker invocations)
- *   FSInputFile (docs/2.png)  -> optional WELCOME_PHOTO_URL env var
- *                                (Workers have no bundled filesystem for
- *                                binary assets; point it at a hosted image
- *                                if you want the welcome photo back)
- *
- * REQUIRED bindings / env vars (set with `wrangler secret put` for secrets):
- *   DB                    D1 database binding (see schema in ensureSchema)
- *   TELEGRAM_BOT_TOKEN    secret - your bot token from @BotFather
- *   ADMINS                comma-separated Telegram user IDs, e.g. "123,456"
- *
- * OPTIONAL env vars:
- *   OPENAI_API_KEY            secret - enables the LLM fallback parser
- *   OPENAI_BASE_URL           default "https://api.gapgpt.app/v1" (same
- *                              OpenAI-compatible proxy the original used)
- *   OPENAI_MODEL              default "gpt-5.6-luna"
- *   TIMEZONE_OFFSET_MINUTES   default "210" (Iran Standard Time, UTC+3:30,
- *                              no DST). All "امروز/فردا/ساعت ..." parsing
- *                              and displayed times use this as local time;
- *                              storage in D1 is always true UTC.
- *   WEBHOOK_SECRET            secret - if set, Telegram's secret_token
- *                              header is verified on every webhook call
- *   WELCOME_PHOTO_URL         hosted image URL for the /start photo
- *
- * DEPLOYMENT (see accompanying wrangler.toml):
- *   1. wrangler d1 create remindtel-db   (put the id in wrangler.toml)
- *   2. wrangler secret put TELEGRAM_BOT_TOKEN
- *      wrangler secret put OPENAI_API_KEY      (optional)
- *      wrangler secret put WEBHOOK_SECRET      (optional but recommended)
- *   3. wrangler deploy
- *   4. Visit https://<your-worker>.workers.dev/install once (GET request)
- *      to register the Telegram webhook automatically. Re-run it any time
- *      the Worker's URL changes.
- *
- * Tables are created lazily on first request (CREATE TABLE IF NOT EXISTS),
- * so no manual migration step is required for a fresh D1 database.
- */
 
-// ============================================================================
+
 // i18n (ported from i18n.py)
-// ============================================================================
 
 const TEXTS = {
   fa: {
@@ -128,10 +79,9 @@ function t(lang, key, vars) {
   return value;
 }
 
-// ============================================================================
+
 // Persian natural-language time parser (ported from persian_time.py, verified
 // against the Python original on 30+ example phrases)
-// ============================================================================
 
 const PERSIAN_DIGITS = { '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4', '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9' };
 
@@ -404,9 +354,9 @@ function parseReminderPersian(text, now) {
   return { description, remindAt };
 }
 
-// ============================================================================
+
 // LLM fallback parser (ported from llm_parser.py)
-// ============================================================================
+
 
 const LLM_SYSTEM_PROMPT = `You are the semantic natural-language parser for a Telegram reminder bot.
 Your job is NOT to reply to the user. Your job is to understand the user's
@@ -537,10 +487,10 @@ async function parseReminderWithLLM(text, now, env) {
   }
 }
 
-// ============================================================================
+
 // Timezone helpers — TIMEZONE_OFFSET_MINUTES defines the fixed local offset
 // used for parsing/display. D1 always stores true UTC instants.
-// ============================================================================
+
 
 function tzOffsetMinutes(env) {
   const v = Number(env.TIMEZONE_OFFSET_MINUTES);
@@ -585,9 +535,9 @@ function parseAdmins(env) {
     .filter((n) => !Number.isNaN(n));
 }
 
-// ============================================================================
+
 // D1 data access (ported from models.py / operations.py)
-// ============================================================================
+
 
 let schemaReady = false;
 
@@ -697,9 +647,9 @@ async function ensureUser(env, from) {
   return user;
 }
 
-// ============================================================================
+
 // Telegram Bot API helpers
-// ============================================================================
+
 
 async function tg(env, method, params) {
   const res = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/${method}`, {
@@ -763,9 +713,9 @@ function contactMarkup() {
 
 
 
-// ============================================================================
+
 // Handlers (ported from main.py)
-// ============================================================================
+
 
 function reminderLine(r, lang, env) {
   const parts = utcIsoToLocalParts(r.remind_at, env);
@@ -812,7 +762,7 @@ async function handleBroadcastMessage(env, message) {
     try {
       await tg(env, 'copyMessage', { chat_id: u.user_id, from_chat_id: message.chat.id, message_id: message.message_id });
     } catch (e) {
-      // best-effort broadcast: one blocked/unreachable user shouldn't stop the rest
+    
     }
   }
   await clearState(env, message.from.id);
@@ -924,7 +874,7 @@ if (text === t(lang, 'my_reminders')) {
   );
   return;
 }
-  // --- ADD RATE LIMIT CHECK HERE ---
+  // --- RATE LIMIT CHECK  ---
     if (env.BOT_RATE_LIMITER) {
     const { success } = await env.BOT_RATE_LIMITER.limit({
       key: `reminder:${message.from.id}`,
@@ -947,7 +897,7 @@ if (text === t(lang, 'my_reminders')) {
     return;
   }
 
-  // Unrecognized command or non-text message: silently ignored, matching the original.
+  
 }
 
 async function handleCallbackQuery(env, cb) {
@@ -1052,9 +1002,9 @@ async function handleCallbackQuery(env, cb) {
   }
 }
 
-// ============================================================================
+
 // Worker entry points
-// ============================================================================
+
 
 export default {
   async fetch(request, env, ctx) {
