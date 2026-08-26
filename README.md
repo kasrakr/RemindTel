@@ -69,7 +69,7 @@ Instead of forcing users to memorize a command syntax, RemindTel accepts natural
 - `ساعت دو و نیم یادم بنداز پروژه رو commit کنم`
 - `Remind me to call Dad tomorrow at 5 PM`
 
-The Worker implementation is a serverless port of the original Python/aiogram bot. The production-oriented version replaces long polling with a Telegram webhook, replaces SQLite/SQLAlchemy persistence with Cloudflare D1, replaces the in-memory APScheduler with a Cloudflare Cron Trigger, and stores conversational state in D1 so it survives Worker invocations. citeturn988066view0
+The Worker implementation is a serverless port of the original Python/aiogram bot. The production-oriented version replaces long polling with a Telegram webhook, replaces SQLite/SQLAlchemy persistence with Cloudflare D1, replaces the in-memory APScheduler with a Cloudflare Cron Trigger, and stores conversational state in D1 so it survives Worker invocations.
 
 The bot is publicly available as **[@RemindTel_Bot](https://t.me/RemindTel_Bot)**.
 
@@ -116,7 +116,7 @@ The bot is publicly available as **[@RemindTel_Bot](https://t.me/RemindTel_Bot)*
 └───────────────────────┘
 ```
 
-Incoming Telegram updates are accepted at `/webhook`, processed in the background with `waitUntil()`, and the scheduled handler checks D1 for due reminders before sending them through the Telegram Bot API. citeturn882347view2
+Incoming Telegram updates are accepted at `/webhook`, processed in the background with `waitUntil()`, and the scheduled handler checks D1 for due reminders before sending them through the Telegram Bot API.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -142,8 +142,7 @@ Incoming Telegram updates are accepted at `/webhook`, processed in the backgroun
 | ❤️‍🔥 | **Message Reaction** | Successful reminder creation can react to the original Telegram message. |
 | ☁️ | **Serverless Deployment** | Runs as a Cloudflare Worker without a traditional VPS process. |
 
-The current Worker source implements the bilingual menu, reminder listing/deletion, 700-character input limit, optional rate limiting, and admin broadcast flow. citeturn882347view0turn882347view1
-
+The current Worker source implements the bilingual menu, reminder listing/deletion, 700-character input limit, optional rate limiting, and admin broadcast flow. 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ---
@@ -178,7 +177,7 @@ Remind me at a quarter to three to call Kasra
 Remind me half an hour after two to commit the project
 ```
 
-The parser separates the reminder description from the requested date/time and converts the resulting local wall-clock time into a UTC timestamp for D1 storage. The Worker currently uses a configurable timezone offset, defaulting to Iran Standard Time (UTC+3:30). citeturn988066view0
+The parser separates the reminder description from the requested date/time and converts the resulting local wall-clock time into a UTC timestamp for D1 storage. The Worker currently uses a configurable timezone offset, defaulting to Iran Standard Time (UTC+3:30). 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -211,7 +210,7 @@ The parser separates the reminder description from the requested date/time and c
 | Natural-language parsing | Custom JavaScript parser + optional LLM fallback |
 | Original implementation | Python + aiogram + SQLAlchemy + SQLite + APScheduler |
 
-The Worker source explicitly documents the migration from aiogram long polling → Telegram webhooks, SQLite/SQLAlchemy → D1, APScheduler → Cron Triggers, and in-memory step state → D1-backed state. citeturn988066view0
+The Worker source explicitly documents the migration from aiogram long polling → Telegram webhooks, SQLite/SQLAlchemy → D1, APScheduler → Cron Triggers, and in-memory step state → D1-backed state.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -242,7 +241,7 @@ RemindTel/
 └── README.md
 ```
 
-The repository currently contains both the original Python implementation and the single-file Cloudflare Worker port. The Worker itself contains the ported i18n, Persian parser, LLM fallback, D1 operations, Telegram handlers, webhook entry point, and Cron scheduler. citeturn988066view0turn195193view0
+The repository currently contains both the original Python implementation and the single-file Cloudflare Worker port. The Worker itself contains the ported i18n, Persian parser, LLM fallback, D1 operations, Telegram handlers, webhook entry point, and Cron scheduler. 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
