@@ -35,7 +35,7 @@ A serverless Telegram reminder bot that understands natural-language scheduling 
 
 ---
 <div align="center">
-  <img src="docs/12.png" alt="DevProject preview placeholder — replace with a real screenshot" width="900" />
+  <img src="docs/12.png" alt="DevProject" width="900" />
 </div>
 
 
